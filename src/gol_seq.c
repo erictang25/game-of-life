@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "test_case1.h"
+#include "test_cases.h"
 
 #define BILLION 1000000000L
 #define KNRM  "\x1B[0m"
@@ -27,6 +27,7 @@ int rand();
 void print_grid(int *A, int N);
 void copy_grid(int *old, int *new, int N);
 int get_num_live_neighbors(int *A, int r, int c, int N);
+int game_of_life(int *A, int N, int ROUNDS, int test);
 
 int check_generation_output( int *A, int *ref, int N ){
   int mismatch = 0;
@@ -41,7 +42,7 @@ int check_generation_output( int *A, int *ref, int N ){
     for (int i = 0; i < N; i++){
       for (int j = 0; j < N; j++){
         if (A[i*N+j] != ref[i*N+j]) 
-          printf("%s%d%s ", KRED, A[i*N+j], KNRM);
+          printf("%s%d%s ", KRED, ref[i*N+j], KNRM);
         else
           printf("%d ", A[i*N+j]);
       }
@@ -52,43 +53,95 @@ int check_generation_output( int *A, int *ref, int N ){
 }
 
 int main( int argc, char** argv ){
-  int N = 10;     /* Matrix size */
-  int ROUNDS = 5; /* Number of Rounds */
-  int test = 0;
-  if ( argc > 1 ) N      = atoi(argv[1]); 
-  if ( argc > 2 ) ROUNDS = atoi(argv[2]); 
-  if ( argc > 3 ) test   = atoi(argv[3]); 
+	int N = 10;     /* Matrix size */
+	int ROUNDS = 5; /* Number of Rounds */
+	int test = 0;
+
+	if ( argc > 1 ) test   = atoi(argv[1]); 
+	if ( argc > 2 ) N      = atoi(argv[2]); 
+	if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
   
 	struct timespec start, end;
 	double diff;
-	int state, num_neighbors;
+	int *A;
 
-	int r,c;
-  int *A;
-  if (test>0){
-    if (test == 1){
-      N = T1_DIM;
-      ROUNDS = T1_ROUNDS;
-      A = test_1[0];
-    }
-  } else{
-    /* Dynamically allocate Game of Life Grid*/
-    A = (int*)malloc(N * N * sizeof(int));
+	/* Initialize Game of Life Grid */
+	if (test>0){
+		N = T1_DIM;
+		ROUNDS = T1_ROUNDS;
+		switch(test){
+			case 1: A = test_1[0];
+				break;
+			case 2: A = test_2[0];
+				break;
+			case 3:
+				N = T3_DIM; ROUNDS = T3_ROUNDS; 
+				A = test_3[0];
+				break;
+			case 4:
+				N = T4_DIM; ROUNDS = T4_ROUNDS; 
+ 				A = test_4[0];
+				break;
+			case 5: A = test_5[0];
+				break;
+			case 6: 
+				N = T6_DIM; ROUNDS = T6_ROUNDS; 
+				A = test_6[0];
+				break;
+			case 7: A = test_7[0];
+				break;
+			case 8: A = test_8[0];
+				break;
+			default: printf("Invalid test input");
+				return 0;
+		}
+	} else{
+		/* Dynamically allocate Game of Life Grid*/
+		A = (int*)malloc(N * N * sizeof(int));
 		/* Randomly initialize grid */
-    srand48(1);
-    for(r = 0; r < N; r++){
-      for(c = 0; c < N; c++)
-        A[r * N + c] = rand() % 2;
-    	}
-  	}
-  	int *A_new = (int*)malloc(N * N * sizeof(int));
-  	if(A == NULL || A_new == NULL){
-    	printf("Memory not allocated. \n");
-    	return 0;
-  }
+    	srand48(1);
+    	for(int r = 0; r < N; r++){
+      		for(int c = 0; c < N; c++)
+        		A[r * N + c] = rand() % 2;
+  		}
+  		if(A == NULL){
+    		printf("Memory not allocated. \n");
+    		return 0;
+		}
+	}
 
-	/* Start Timer */
-	clock_gettime(CLOCK_MONOTONIC, &start);
+	/* Run and time Game of Life */
+	clock_gettime(CLOCK_MONOTONIC, &start); /* Start Timer */
+	int status = game_of_life(A, N, ROUNDS, test);
+	clock_gettime(CLOCK_MONOTONIC, &end);   /* End timer */
+
+	if(status == -1)
+		return 0;
+
+	if(test > 0)
+    	printf("%sPASSED TEST %d%s\n", KGRN, test, KNRM);
+	else
+		free((void *)A);
+
+	/* Calculate runtime */
+	diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
+	diff /= BILLION;
+	printf("%d rounds of Game of Life\n", ROUNDS);
+	printf("Runtime: %8f sec\n", diff);
+	
+	return 0;  
+}
+
+
+int game_of_life(int *A, int N, int ROUNDS, int test){
+
+	int num_neighbors, state;
+
+	int *A_new = (int*)malloc(N * N * sizeof(int));
+	if(A_new == NULL){
+		printf("Memory not allocated. \n");
+		return 0;
+	}
 
 	/* Run Game of Life for set number of iterations */
 	for(int i = 0; i < ROUNDS; i++){
@@ -96,8 +149,43 @@ int main( int argc, char** argv ){
 		print_grid(A, N);
 		printf("\n");
 
-		for(r = 0; r < N; r++){
-			for(c = 0; c < N; c++){
+		switch(test){
+    		case 1:  
+      			if (check_generation_output( A, test_1[i], N ))
+        			return -1;
+				break;
+			case 2:  
+      			if (check_generation_output( A, test_2[i], N ))
+        			return -1;
+				break;
+			case 3:  
+      			if (check_generation_output( A, test_3[i%2], N ))
+        			return -1;
+				break;
+			case 4:  
+      			if (check_generation_output( A, test_4[0], N ))
+        			return -1;
+				break;
+			case 5:  
+      			if (check_generation_output( A, test_5[i], N ))
+        			return -1;
+				break;
+			case 6:  
+      			if (check_generation_output( A, test_6[0], N ))
+        			return -1;
+				break;
+			case 7:  
+   		  	 	if (check_generation_output( A, test_7[i], N ))
+        			return -1;
+				break;
+			case 8:  
+    		  	if (check_generation_output( A, test_8[i], N ))
+        			return -1;
+				break;
+		}
+
+		for(int r = 0; r < N; r++){
+			for(int c = 0; c < N; c++){
 				num_neighbors = get_num_live_neighbors(A, r, c, N);
 				state = A[r * N + c];
 				if(state == 1 && (num_neighbors == 2 || num_neighbors == 3)){
@@ -110,23 +198,10 @@ int main( int argc, char** argv ){
 			}
 		}
 		copy_grid(A, A_new, N);
-    if( test>0 ){ 
-      if (check_generation_output( A_new, test_1[i], N ))
-        return -1;
-    }
 	}
 
-	/* End timer, calculate runtime */
-	clock_gettime(CLOCK_MONOTONIC, &end);
-	diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-	diff /= BILLION;
-	printf("%d rounds of Game of Life\n", ROUNDS);
-	printf("%8f sec\n", diff);
-
-	free((void *)A);
 	free((void *)A_new);
-
-	return 0;  
+	return 0;
 }
 
 void print_grid( int *A, int N ){
@@ -174,3 +249,4 @@ int get_num_live_neighbors(int *A, int r, int c, int N){
 
 	return num_alive;
 }
+
