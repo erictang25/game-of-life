@@ -134,16 +134,27 @@ void copy_grid(int *old, int *new, int N){
  * a grid and set of coordinates
  */
 int get_num_live_neighbors(int *A, int r, int c, int N){
+	int row, col;
 	int num_alive = 0;
 	for(int nr = r-1; nr <= r+1; nr++){
 		for(int nc = c-1; nc <= c+1; nc++){
-			if(nr >= 0 && nr < N && nc >= 0 && nc < N){
-				if(nr != r && nc != c){
-					if(A[nr * N + nc] == 1)
-						num_alive++;
-				}
-			}
+			row = nr;
+			col = nc;
+
+			if(row < 0) 
+				row = N-1; 
+			else if(row >= N)
+				row = 0; 
+
+			if(col < 0)
+				col = N-1;
+			else if(col >= N)
+				col = 0;
+
+			if(row != r && col != c && A[row * N + col] == 1)
+					num_alive++;
 		}
 	}
+
 	return num_alive;
 }
