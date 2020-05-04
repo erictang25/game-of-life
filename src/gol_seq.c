@@ -36,7 +36,21 @@ int check_generation_output( int *A, int *ref, int N ){
         mismatch = 1;
     }
   }
-  if (mismatch)
+  if (mismatch){
+    printf("\nERROR\n");
+    printf("[\n");
+    for (int i = 0; i < N; i++){
+      for (int j = 0; j < N; j++){
+        if (A[i*N+j] != ref[i*N+j]) 
+          printf("%s%d%s ", KRED, A[i*N+j], KNRM);
+        else
+          printf("%d ", A[i*N+j]);
+      }
+      printf("\n");
+    }
+    printf("]\n");
+  }
+  return mismatch;
 }
 
 int main( int argc, char** argv ){
@@ -52,27 +66,28 @@ int main( int argc, char** argv ){
 	int state, num_neighbors;
 
 	int r,c;
-  int *A, *A_new;
+  int *A;
   if (test>0){
     if (test == 1){
-      N = test_1_N;
-      *A = test_1[0];
+      N = T1_DIM;
+      ROUNDS = T1_ROUNDS;
+      A = test_1[0];
     }
   }
   else{
     /* Dynamically allocate Game of Life Grid*/
-    *A     = (int*)malloc(N * N * sizeof(int));
-    *A_new = (int*)malloc(N * N * sizeof(int));
+    A = (int*)malloc(N * N * sizeof(int));
 	/* Randomly initialize grid */
-    if(A == NULL || A_new == NULL){
-      printf("Memory not allocated. \n");
-      return 0;
-    }
     srand48(1);
     for(r = 0; r < N; r++){
       for(c = 0; c < N; c++)
         A[r * N + c] = rand() % 2;
     }
+  }
+  int *A_new = (int*)malloc(N * N * sizeof(int));
+  if(A == NULL || A_new == NULL){
+    printf("Memory not allocated. \n");
+    return 0;
   }
 
 	/* Start Timer */
@@ -98,6 +113,10 @@ int main( int argc, char** argv ){
 			}
 		}
 		copy_grid(A, A_new, N);
+    if( test>0 ){ 
+      if (check_generation_output( A_new, test_1[i], N ))
+        return -1;
+    }
 	}
 
 	/* End timer, calculate runtime */
