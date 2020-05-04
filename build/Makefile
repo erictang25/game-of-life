@@ -16,12 +16,13 @@ default: gol_seq
 utils.o: $(src)/utils.c $(src)/utils.h 
 	$(CC) $(CCFLAGS) -c -o $@ $(LDFLAGS) $<
 
-gol_seq: $(src)/gol_seq.c $(OBJ)
+gol_seq: $(src)/gol_seq.c 
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 	./gol_seq 1 1 1
 
 gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
+	./gol_parallel 1
 
 unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)

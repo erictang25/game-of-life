@@ -7,60 +7,71 @@
  * 
  * 
  * */
-
+ 
+ 
+#include "cuda_profiler_api.h"
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
 
-__global__ void gol_cycle( uint8_t *world, int world_N ){
-  int x = threadIdx.x + blockIdx.x * blockDim.x; 
-  int y = threadIdx.y + blockIdx.y * blockDim.y; 
-
+// Each cell is one bit
+// Each byte is 8 cells
+__global__ void gol_cycle( uint8_t *world, int N, int world_length ){
+  int x = threadIdx.x + blockIdx.x * blockDim.x;
+  int offset = blockDim.x * gridDim.x;
+  for ( int i = x; i < N; i+= offset )
+  printf("%x\n",world[i]);
 }
 
-__host__ void gol_bit_per_cell( uint8_t *world, int N, int rounds, 
-                                int test, uint8_t *ref ){
-  dim3 Block(1); // Square pattern
+void gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test, 
+                       uint8_t *ref ){
+  int world_length = N/8;
+  int num_elements = N*N/8;
+  dim3 Block(2); // Square pattern
   dim3 Grid(1);
   uint8_t *dev_world;
-  cudaMalloc((void **) &dev_world, N*sizeof(uint8_t)); 
-  cudaMemcpy(dev_world, world, n_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
-  for ( int i = 0; i < rounds; i++ ){
-    gol_cycle<<<Grid, Block>>>( dev_world, world_N );
-  }
+  cudaMalloc((void **) &dev_world, num_elements*sizeof(uint8_t)); 
+  cudaMemcpy(dev_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
+  // for ( int i = 0; i < rounds; i++ ){
+  gol_cycle<<<Grid, Block>>>( dev_world, N, world_length );
+  cudaMemcpy(world, dev_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+  // }
 }
 
 int main( int argc, char** argv ){
-  int N = 10;     /* Matrix size */
+  int N = 8;     /* Matrix size */
   int ROUNDS = 5; /* Number of Rounds */
   int test = 0;
   int P = 1; // number of threads
   if ( argc > 1 ) test = atoi(argv[1]); 
   if ( argc > 2 ) {
-    N = atoi(argv[2]);
+    N = atoi(argv[2]); // Dimensions of the block
     if ( N % 8 != 0 ){
-      printf( "Invalid N:[%d]; must be divisible by 8", N );
+      printf( "Invalid N:[%d]; must be divisible by 8\n", N );
     } 
   }
-  if ( argc > 3 ) {
-    P = atoi(argv[3]); 
+  if ( argc > 3 ) { 
+    P = atoi(argv[3]); // number of threads
+    if ( P > N*N/8 ){
+      printf( "Invalid P:[%d]; Too many threads for number of elements %d\n", P, N*N/8 );
+    }
   }
   if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
   struct timespec start, end;
 	double diff;
-  int n_elements; // Number of elements in the world
-  uint8_t *world;
+  uint8_t *world, *ref;
   if (test){
-    world = test_1[0];
-    ref   = test_1[1];
-    ROUNDS= T_ROUNDS;
+    world  = test_1[0];
+    ref    = test_1[1];
+    N      = T_DIM;
+    ROUNDS = T_ROUNDS;
   }
   else {
-    int n_elements = N*N/8; // Number of elements in the world
+    int n_elements = N*N/8;
     world = (uint8_t*)malloc(n_elements * sizeof(uint8_t));
     ref   = NULL;
   }
-  gol_bit_per_cell( world, n_elements, ROUNDS, test, ref );
+  gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
 
   return 0;
 }
