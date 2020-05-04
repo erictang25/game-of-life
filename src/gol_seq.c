@@ -38,7 +38,6 @@ int check_generation_output( int *A, int *ref, int N ){
   }
   if (mismatch){
     printf("\nERROR\n");
-    printf("[\n");
     for (int i = 0; i < N; i++){
       for (int j = 0; j < N; j++){
         if (A[i*N+j] != ref[i*N+j]) 
@@ -48,7 +47,6 @@ int check_generation_output( int *A, int *ref, int N ){
       }
       printf("\n");
     }
-    printf("]\n");
   }
   return mismatch;
 }
@@ -73,21 +71,20 @@ int main( int argc, char** argv ){
       ROUNDS = T1_ROUNDS;
       A = test_1[0];
     }
-  }
-  else{
+  } else{
     /* Dynamically allocate Game of Life Grid*/
     A = (int*)malloc(N * N * sizeof(int));
-	/* Randomly initialize grid */
+		/* Randomly initialize grid */
     srand48(1);
     for(r = 0; r < N; r++){
       for(c = 0; c < N; c++)
         A[r * N + c] = rand() % 2;
-    }
-  }
-  int *A_new = (int*)malloc(N * N * sizeof(int));
-  if(A == NULL || A_new == NULL){
-    printf("Memory not allocated. \n");
-    return 0;
+    	}
+  	}
+  	int *A_new = (int*)malloc(N * N * sizeof(int));
+  	if(A == NULL || A_new == NULL){
+    	printf("Memory not allocated. \n");
+    	return 0;
   }
 
 	/* Start Timer */
@@ -170,7 +167,7 @@ int get_num_live_neighbors(int *A, int r, int c, int N){
 			else if(col >= N)
 				col = 0;
 
-			if(row != r && col != c && A[row * N + col] == 1)
+			if((row != r || col != c) && A[row * N + col] == 1)
 					num_alive++;
 		}
 	}
