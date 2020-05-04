@@ -9,18 +9,23 @@ LDFLAGS = -lrt #-lm
 
 src = ../src
 
+OBJ = utils.o
+
 default: gol_seq
 
-gol_seq: $(src)/gol_seq.c
+utils.o: $(src)/utils.c $(src)/utils.h 
+	$(CC) $(CCFLAGS) -c -o $@ $(LDFLAGS) $<
+
+gol_seq: $(src)/gol_seq.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 	./gol_seq 1 1 1
 
-gol_parallel: $(src)/gol_parallel.cu
+gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
 
-unit_test: $(src)/unit_test.c
+unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
-	./test
+	# ./test
 
 test: gol_seq
 	./gol_seq 1 1 1 
