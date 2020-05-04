@@ -18,5 +18,9 @@ gol_seq: $(src)/gol_seq.c
 gol_parallel: $(src)/gol_parallel.cu
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
 
+test: $(src)/unit_test.c
+	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
+	./test
+
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel

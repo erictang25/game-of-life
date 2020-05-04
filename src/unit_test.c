@@ -14,7 +14,7 @@
 #define BILLION 1000000000L
 
 /* USER DEFINED PARAMETERS */
-#define N      10 /* Matrix size */
+#define N      4 /* Matrix size */
 #define ROUNDS 5  /* Number of Rounds */
 
 void srand48(long int seedval);
@@ -53,22 +53,26 @@ int main(){
 	for(int i = 0; i < ROUNDS; i++){
 		printf("ROUND %d\n", i);
 		print_grid(A);
-		printf("\n");
+
 
 		for(r = 0; r < N; r++){
 			for(c = 0; c < N; c++){
 				num_neighbors = get_num_live_neighbors(A, r, c);
+				printf("%d", num_neighbors);
 				state = A[r * N + c];
-				if(state == 1 && (num_neighbors == 2 || num_neighbors == 3)){
-					A_new[r * N + c] = 1;
-				} else if(state == 0 && num_neighbors == 3){
-					A_new[r * N + c] = 1;
-				} else {
-					A_new[r * N + c] = 0;
-				}
+				if(state  == 1){ // || num_neighbors == 3)){
+//					A_new[r * N + c] = 1;
+					printf("what");
+				} 
+				printf("e ");
+//				else if(state == 0 && num_neighbors == 3){
+//					A_new[r * N + c] = 1;
+//				} else {
+//					A_new[r * N + c] = 0;
+//				}
 			}
 		}
-		copy_grid(A, A_new);
+//		copy_grid(A, A_new);
 	}
 
 	/* End timer, calculate runtime */
@@ -91,6 +95,7 @@ void print_grid(int *A){
 			if(c == N-1){ printf("\n"); }
 		}
 	}
+	printf("\n");
 }
 
 /* Copy new grid into old grid */
@@ -108,12 +113,12 @@ int get_num_live_neighbors(int *A, int r, int c){
 	int num_alive = 0;
 	for(int nr = r-1; nr <= r+1; nr++){
 		for(int nc = c-1; nc <= c+1; nc++){
-			if(nr >= 0 && nr < N && nc >= 0 && nc < N){
-				if(nr != r && nc != c){
-					if(A[nr * N + nc] == 1)
-						num_alive++;
-				}
-			}
+//			if(nr >= 0 && nr < N && nc >= 0 && nc < N){
+//				if(nr != r && nc != c){
+//					if(A[nr * N + nc] == 1)
+			num_alive += 1;
+//				}
+//			}
 		}
 	}
 	return num_alive;
