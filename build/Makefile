@@ -11,8 +11,9 @@ src = ../src
 
 default: gol_seq
 
-seq: $(src)/gol_seq.c
+gol_seq: $(src)/gol_seq.c
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
+	./gol_seq
 
 gol_parallel: $(src)/gol_parallel.cu
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
