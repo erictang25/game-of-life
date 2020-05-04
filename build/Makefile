@@ -26,4 +26,4 @@ test: gol_seq
 	./gol_seq 1 1 1 
 
 clean:
-	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel
+	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test
