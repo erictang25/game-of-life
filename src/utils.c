@@ -64,9 +64,9 @@ int world_bits_correct( uint8_t *test, uint8_t *ref, int N ){
     printf("ref:\n");
     print_world_bits(ref, N);
   }
-  else{
-    printf("%sCORRECT%s\n", KYEL, KNRM);
-    print_world_bits(test, N);
-  } 
+  // else{
+  //   printf("%sCORRECT%s\n", KYEL, KNRM);
+  //   print_world_bits(test, N);
+  // } 
   return match; 
 }

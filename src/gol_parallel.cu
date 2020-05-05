@@ -27,10 +27,10 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
   int x = threadIdx.x + blockIdx.x * blockDim.x;
   // int offset = blockDim.x * gridDim.x;
   register uint8_t curr_8_states, curr_bit = 0, next_8_states = 0,
-                   num_alive = 0, threshold, north_byte, south_byte;
+                   num_alive = 0, north_byte, south_byte;
   int start = x*num_bytes; 
   int end   = start + num_bytes;   
-  printf("nb[%d] s[%d] e[%d] x:[%d] \n", num_bytes, start, end, x);                       
+  // printf("nb[%d] s[%d] e[%d] x:[%d] \n", num_bytes, start, end, x);                       
   for ( int i = start; i < end; i++ ){
     curr_8_states = curr_world[i];
     next_8_states = curr_8_states;
@@ -47,26 +47,25 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
       if ( bit != 0 )
         if ( (curr_8_states >> (bit-1)) & 0x1 ) num_alive++;
       
-      threshold = curr_bit ? 2 : 3; 
       // look west
-      if ( (num_alive < threshold) && (bit == 7) && (i % world_length != 0) ){
+      if ( (bit == 7) && (i % world_length != 0) ){
         // for the lsb
         if ( curr_world[i-1] & 0x1 ) num_alive++;
       }
       // look east
-      if ( (num_alive < threshold) && (bit == 0) && ((i + 1) % world_length != 0) ){
+      if ( (bit == 0) && ((i + 1) % world_length != 0) ){
         // for the msb
         if ( (curr_world[i-1] >> 7) & 0x1 ) num_alive++;
       }
       // look north
-      if ( (num_alive < threshold) && (i > (world_length - 1)) ){
+      if ( (i > (world_length - 1)) ){
         north_byte = curr_world[i-world_length];
         if ( (north_byte >> (bit-1)) & 0x1 ) num_alive++;
         if ( (north_byte >> (bit))   & 0x1 ) num_alive++;
         if ( (north_byte >> (bit+1)) & 0x1 ) num_alive++;
       } 
       // look south
-      if ( (num_alive < threshold) && (i < (arr_length - world_length)) ){
+      if ( (i < (arr_length - world_length)) ){
         south_byte = curr_world[i+world_length];
         if ( (south_byte >> (bit-1)) & 0x1 ) num_alive++;
         if ( (south_byte >> (bit))   & 0x1 ) num_alive++;
@@ -79,8 +78,8 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
       else if ( !curr_bit && (num_alive == 3)){
         next_8_states ^= (uint8_t)(1 << bit);
       }
-      printf("B[%d] b[%d] alive:%d num_alive:%d st:%x \n", i, bit, curr_bit, 
-        num_alive, next_8_states);
+      // printf("B[%d] b[%d] alive:%d num_alive:%d st:%x \n", i, bit, curr_bit, 
+        // num_alive, next_8_states);
     }
     next_world[i] = next_8_states;
   }
@@ -140,34 +139,68 @@ int main( int argc, char** argv ){
 	// double diff;
   uint8_t *world, **ref;
   if (test){
+    int num_correct = 0, num_tests = 0;
     // T1
-    printf("Running test 1\n");
+    num_tests++;
+    printf("Running test %d\n", num_tests);
     world  = test_1[0];
     N      = T_DIM;
     ROUNDS = T_ROUNDS - 1;
     ref    = (uint8_t**) malloc( sizeof(uint8_t*) * ROUNDS );
     for ( int r = 0; r < ROUNDS; r++ )
-    ref[r] = test_1[r+1];
-    gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+      ref[r] = test_1[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
     // T2
-    // printf("Running test 2\n");
-    // world  = test_2[0];
-    // for ( int r = 0; r < ROUNDS; r++ )
-    //   ref[r] = test_2[r+1];
-    // gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
-    // // T3
-    // printf("Running test 3\n");
-    // world  = test_3[0];
-    // for ( int r = 0; r < ROUNDS; r++ )
-    //   ref[r] = test_3[r+1];
-    // gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_2[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_2[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
+    // T3
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_3[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_3[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
+    // T4
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_4[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_4[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
+    // T5
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_5[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_5[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
+    // T6
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_6[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_6[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
+    // T7
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_7[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_7[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
     // T8
-    printf("Running test 3\n");
+    num_tests++;
+    printf("Running test %d\n", num_tests);
     world  = test_8[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_8[r+1];
-    gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref )) num_correct++;
 
+    printf("%s %d/%d tests passed %s\n", KBLU, num_correct, num_tests, KNRM);
     free(ref);
   }
   else {

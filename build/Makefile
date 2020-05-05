@@ -25,14 +25,15 @@ gol_seq: $(src)/gol_seq.c $(OBJ)
 
 gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
-	./gol_parallel 1
 
 unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 	# ./test
 
-test: gol_parallel
+test_bits_para: clean gol_parallel
 	./gol_parallel 1 2 
+	./gol_parallel 1 4 
+	./gol_parallel 1 8 
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test
