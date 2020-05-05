@@ -28,22 +28,25 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
   // int offset = blockDim.x * gridDim.x;
   register uint8_t curr_8_states, curr_bit = 0, next_8_states = 0,
                    num_alive = 0, threshold, north_byte, south_byte;
-
-  for ( int i = x*blockDim.x*gridDim.x; i < num_bytes; i++ ){
+  int start = x*num_bytes; 
+  int end   = start + num_bytes;   
+  printf("nb[%d] s[%d] e[%d] x:[%d] \n", num_bytes, start, end, x);                       
+  for ( int i = start; i < end; i++ ){
     curr_8_states = curr_world[i];
+    next_8_states = curr_8_states;
     for (int bit = 0; bit < 8; bit ++){
       // iterate through each bit
       curr_bit = (curr_8_states >> bit) & 0x1; // extract cell state 
       num_alive = 0;
-      // Check left and right first since they are in register
-      // look west
-      if ( bit != 7 ){
+      // Check west and east first since they are in register
+      // look west in same register
+      if ( bit != 7 )
         if ( (curr_8_states >> (bit+1)) & 0x1 ) num_alive++;
-      }
-      // look east
-      if ( bit != 0 ){
+      
+      // look east in same register
+      if ( bit != 0 )
         if ( (curr_8_states >> (bit-1)) & 0x1 ) num_alive++;
-      }
+      
       threshold = curr_bit ? 2 : 3; 
       // look west
       if ( (num_alive < threshold) && (bit == 7) && (i % world_length != 0) ){
@@ -76,14 +79,19 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
       else if ( !curr_bit && (num_alive == 3)){
         next_8_states ^= (uint8_t)(1 << bit);
       }
+      printf("B[%d] b[%d] alive:%d num_alive:%d st:%x \n", i, bit, curr_bit, 
+        num_alive, next_8_states);
     }
     next_world[i] = next_8_states;
-    next_8_states = 0;
   }
+  // __syncthreads();
+  // for ( int i = x*blockDim.x*gridDim.x; i < num_bytes; i++ ){
+  //   curr_world[i] = next_world[i];
+  // }
 }
 
-void gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test, 
-                       uint8_t *ref ){
+int gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test, 
+                       uint8_t **ref ){
   int world_length = N/8;
   int num_elements = N*N/8;
   dim3 Block(1); // Square pattern
@@ -91,13 +99,16 @@ void gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test,
   uint8_t *dev_curr_world, *dev_next_world;
   cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
   cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
-  cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
-  // for ( int i = 0; i < rounds; i++ ){
-  
-  gol_cycle<<<Grid, Block>>>( dev_curr_world, dev_next_world, N/P, world_length, num_elements );
-  cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
-  print_world_bits(world, N);
-  // }
+  // cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
+  for ( int i = 0; i < rounds; i++ ){
+    cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
+    gol_cycle<<<Grid, Block>>>( dev_curr_world, dev_next_world, N*N/8/P, 
+                                world_length, num_elements );
+    cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+    // print_world_bits(ref, N);
+    if ( test && !world_bits_correct(world, ref[i], N)) return 1;
+  }
+  return 0;
 }
 
 int main( int argc, char** argv ){
@@ -106,39 +117,69 @@ int main( int argc, char** argv ){
   int test = 0;
   int P = 1; // number of threads
   if ( argc > 1 ) test = atoi(argv[1]); 
-  if ( argc > 2 ) {
-    N = atoi(argv[2]); // Dimensions of the block
-    if ( N % 8 != 0 ){
-      printf( "Invalid N:[%d]; must be divisible by 8\n", N );
-    } 
-  }
-  if ( argc > 3 ) { 
-    P = atoi(argv[3]); // number of threads
+  if ( argc > 2 ) { 
+    P = atoi(argv[2]); // number of threads
     if ( P > N*N/8 ){
       printf( "Invalid P:[%d]; Too many threads for number of elements %d\n", P, N*N/8 );
+      return 1;
     }
+    if ( N*N/8 % P != 0 ){
+      printf( "Invalid P:[%d]; Number of threads should be a factor of %d\n", P, N*N/8 );
+      return 1;
+    }
+  }
+  if ( argc > 3 ) {
+    N = atoi(argv[3]); // Dimensions of the block
+    if ( N % 8 != 0 ){
+      printf( "Invalid N:[%d]; must be divisible by 8\n", N );
+      N = 8;
+    } 
   }
   if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
   // struct timespec start, end;
 	// double diff;
-  uint8_t *world, *ref;
+  uint8_t *world, **ref;
   if (test){
+    // T1
+    printf("Running test 1\n");
     world  = test_1[0];
-    ref    = test_1[1];
     N      = T_DIM;
-    ROUNDS = T_ROUNDS;
+    ROUNDS = T_ROUNDS - 1;
+    ref    = (uint8_t**) malloc( sizeof(uint8_t*) * ROUNDS );
+    for ( int r = 0; r < ROUNDS; r++ )
+    ref[r] = test_1[r+1];
+    gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+    // T2
+    // printf("Running test 2\n");
+    // world  = test_2[0];
+    // for ( int r = 0; r < ROUNDS; r++ )
+    //   ref[r] = test_2[r+1];
+    // gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+    // // T3
+    // printf("Running test 3\n");
+    // world  = test_3[0];
+    // for ( int r = 0; r < ROUNDS; r++ )
+    //   ref[r] = test_3[r+1];
+    // gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+    // T8
+    printf("Running test 3\n");
+    world  = test_8[0];
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_8[r+1];
+    gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+
+    free(ref);
   }
   else {
     int n_elements = N*N/8;
     world = (uint8_t*)malloc(n_elements * sizeof(uint8_t));
     ref   = NULL;
+    print_world_bits(world, N);
+    gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+    free(world);
   }
   // for (int i =0; i < N; i++){
   //   printf("%d ", world[i]);
   // }
-
-  print_world_bits(world, N);
-  gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
-  if (!test) free(world);
   return 0;
 }

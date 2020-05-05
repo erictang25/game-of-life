@@ -31,8 +31,8 @@ unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 	# ./test
 
-test: gol_seq gol_parallel
-	./gol_seq 1 1 1 
+test: gol_parallel
+	./gol_parallel 1 2 
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test
