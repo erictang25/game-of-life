@@ -31,9 +31,9 @@ unit_test: $(src)/unit_test.c $(OBJ)
 	# ./test
 
 test_bits_para: clean gol_parallel
-	./gol_parallel 1 2 
-	./gol_parallel 1 4 
-	./gol_parallel 1 8 
+	./gol_parallel 1 8 1 
+	./gol_parallel 1 8 4
+	./gol_parallel 1 8 8
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test
