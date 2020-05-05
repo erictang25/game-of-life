@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define BILLION 1000000000L
 #define KNRM  "\x1B[0m"
@@ -21,3 +22,4 @@
 #define KWHT  "\x1B[37m"
 
 int check_generation_output( int *A, int *ref, int N );
+void print_world_bits( uint8_t *world, int N );

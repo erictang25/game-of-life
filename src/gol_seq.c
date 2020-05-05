@@ -10,17 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "utils.h"
 #include "test_cases.h"
 
-#define BILLION 1000000000L
-#define KNRM  "\x1B[0m"
-#define KRED  "\x1B[31m"
-#define KGRN  "\x1B[32m"
-#define KYEL  "\x1B[33m"
-#define KBLU  "\x1B[34m"
-#define KMAG  "\x1B[35m"
-#define KCYN  "\x1B[36m"
-#define KWHT  "\x1B[37m"
 
 void srand48(long int seedval);
 int rand();
@@ -28,29 +20,6 @@ void print_grid(int *A, int N);
 void copy_grid(int *old, int *new, int N);
 int get_num_live_neighbors(int *A, int r, int c, int N);
 int game_of_life(int *A, int N, int ROUNDS, int test);
-
-int check_generation_output( int *A, int *ref, int N ){
-  int mismatch = 0;
-  for ( int i = 0; i < N; i++ ){
-    for ( int j = 0; j < N; j++ ){
-      if ( A[i*N+j] != ref[i*N+j] )
-        mismatch = 1;
-    }
-  }
-  if (mismatch){
-    printf("\nERROR\n");
-    for (int i = 0; i < N; i++){
-      for (int j = 0; j < N; j++){
-        if (A[i*N+j] != ref[i*N+j]) 
-          printf("%s%d%s ", KRED, ref[i*N+j], KNRM);
-        else
-          printf("%d ", A[i*N+j]);
-      }
-      printf("\n");
-    }
-  }
-  return mismatch;
-}
 
 int main( int argc, char** argv ){
 	int N = 10;     /* Matrix size */

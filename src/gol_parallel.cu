@@ -7,34 +7,96 @@
  * 
  * 
  * */
- 
- 
-#include "cuda_profiler_api.h"
+
+// #include "cuda_profiler_api.h"
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
-
-// Each cell is one bit
-// Each byte is 8 cells
-__global__ void gol_cycle( uint8_t *world, int N, int world_length ){
+#define BUFFER_SIZE 10
+/* 
+ * Each byte is 8 cells
+ * Each cell is one bit
+ * curr_world : shared array for the entire grid
+ * next_world : next shared array for the entire grid
+ * num_bytes  : number of bytes to iterate through for this kernel; each byte is
+ * 8 cells
+ * world_length: length of the ????  
+ */
+__global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_bytes, 
+                           int world_length, int arr_length ){
   int x = threadIdx.x + blockIdx.x * blockDim.x;
-  int offset = blockDim.x * gridDim.x;
-  for ( int i = x; i < N; i+= offset )
-  printf("%x\n",world[i]);
+  // int offset = blockDim.x * gridDim.x;
+  register uint8_t curr_8_states, curr_bit = 0, next_8_states = 0,
+                   num_alive = 0, threshold, north_byte, south_byte;
+
+  for ( int i = x*blockDim.x*gridDim.x; i < num_bytes; i++ ){
+    curr_8_states = curr_world[i];
+    for (int bit = 0; bit < 8; bit ++){
+      // iterate through each bit
+      curr_bit = (curr_8_states >> bit) & 0x1; // extract cell state 
+      num_alive = 0;
+      // Check left and right first since they are in register
+      // look west
+      if ( bit != 7 ){
+        if ( (curr_8_states >> (bit+1)) & 0x1 ) num_alive++;
+      }
+      // look east
+      if ( bit != 0 ){
+        if ( (curr_8_states >> (bit-1)) & 0x1 ) num_alive++;
+      }
+      threshold = curr_bit ? 2 : 3; 
+      // look west
+      if ( (num_alive < threshold) && (bit == 7) && (i % world_length != 0) ){
+        // for the lsb
+        if ( curr_world[i-1] & 0x1 ) num_alive++;
+      }
+      // look east
+      if ( (num_alive < threshold) && (bit == 0) && ((i + 1) % world_length != 0) ){
+        // for the msb
+        if ( (curr_world[i-1] >> 7) & 0x1 ) num_alive++;
+      }
+      // look north
+      if ( (num_alive < threshold) && (i > (world_length - 1)) ){
+        north_byte = curr_world[i-world_length];
+        if ( (north_byte >> (bit-1)) & 0x1 ) num_alive++;
+        if ( (north_byte >> (bit))   & 0x1 ) num_alive++;
+        if ( (north_byte >> (bit+1)) & 0x1 ) num_alive++;
+      } 
+      // look south
+      if ( (num_alive < threshold) && (i < (arr_length - world_length)) ){
+        south_byte = curr_world[i+world_length];
+        if ( (south_byte >> (bit-1)) & 0x1 ) num_alive++;
+        if ( (south_byte >> (bit))   & 0x1 ) num_alive++;
+        if ( (south_byte >> (bit+1)) & 0x1 ) num_alive++;
+      }
+      // Determine if an alive cell will die 
+      if (curr_bit && (num_alive < 2 || num_alive > 3)) 
+        next_8_states ^= (uint8_t)(1 << bit);
+      // Determine if a dead cell will be alive
+      else if ( !curr_bit && (num_alive == 3)){
+        next_8_states ^= (uint8_t)(1 << bit);
+      }
+    }
+    next_world[i] = next_8_states;
+    next_8_states = 0;
+  }
 }
 
 void gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test, 
                        uint8_t *ref ){
   int world_length = N/8;
   int num_elements = N*N/8;
-  dim3 Block(2); // Square pattern
-  dim3 Grid(1);
-  uint8_t *dev_world;
-  cudaMalloc((void **) &dev_world, num_elements*sizeof(uint8_t)); 
-  cudaMemcpy(dev_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
+  dim3 Block(1); // Square pattern
+  dim3 Grid(P);
+  uint8_t *dev_curr_world, *dev_next_world;
+  cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
+  cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
+  cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
   // for ( int i = 0; i < rounds; i++ ){
-  gol_cycle<<<Grid, Block>>>( dev_world, N, world_length );
-  cudaMemcpy(world, dev_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+  
+  gol_cycle<<<Grid, Block>>>( dev_curr_world, dev_next_world, N/P, world_length, num_elements );
+  cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+  print_world_bits(world, N);
   // }
 }
 
@@ -57,8 +119,8 @@ int main( int argc, char** argv ){
     }
   }
   if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
-  struct timespec start, end;
-	double diff;
+  // struct timespec start, end;
+	// double diff;
   uint8_t *world, *ref;
   if (test){
     world  = test_1[0];
@@ -71,7 +133,12 @@ int main( int argc, char** argv ){
     world = (uint8_t*)malloc(n_elements * sizeof(uint8_t));
     ref   = NULL;
   }
-  gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+  // for (int i =0; i < N; i++){
+  //   printf("%d ", world[i]);
+  // }
 
+  print_world_bits(world, N);
+  gol_bit_per_cell( world, N, P, ROUNDS, test, ref );
+  if (!test) free(world);
   return 0;
 }

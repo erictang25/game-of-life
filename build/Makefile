@@ -2,21 +2,24 @@
 
 CC = gcc
 CCFLAGS = -O3 -std=gnu99 -Wall
+CPP = g++
+CPPFLAGS = -O3 -Wall
 
 CUDA = /usr/local/cuda-10.1/bin/nvcc
-CUDAFLAGS = -arch=compute_52
+CUDAFLAGS = -arch=compute_52 -O3
 LDFLAGS = -lrt #-lm
 
 src = ../src
 
 OBJ = utils.o
+CUDAOBJ = cuda_utils.o
 
 default: gol_seq
 
 utils.o: $(src)/utils.c $(src)/utils.h 
-	$(CC) $(CCFLAGS) -c -o $@ $(LDFLAGS) $<
+	$(CPP) $(CPPFLAGS) -c -o $@ $(LDFLAGS) $<
 
-gol_seq: $(src)/gol_seq.c 
+gol_seq: $(src)/gol_seq.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 	./gol_seq 1 1 1
 
@@ -28,7 +31,7 @@ unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 	# ./test
 
-test: gol_seq
+test: gol_seq gol_parallel
 	./gol_seq 1 1 1 
 
 clean:
