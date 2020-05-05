@@ -39,6 +39,7 @@ void print_world_bits( uint8_t *world, int N ){
         if (cell)
           printf( "%d ", cell );
         else
+          // printf( "%d ", cell );
           printf( "  " );
       }
     }

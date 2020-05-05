@@ -27,7 +27,8 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
   int x = threadIdx.x + blockIdx.x * blockDim.x;
   // int offset = blockDim.x * gridDim.x;
   register uint8_t curr_8_states, curr_bit = 0, next_8_states = 0,
-                   num_alive = 0, north_byte, south_byte;
+                   num_alive = 0, north_byte, south_byte, threshold = 4;
+  uint8_t NE_byte, SE_byte, NW_byte, SW_byte;
   int start = x*num_bytes; 
   int end   = start + num_bytes;   
   // printf("nb[%d] s[%d] e[%d] x:[%d] \n", num_bytes, start, end, x);                       
@@ -46,40 +47,70 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
       // look east in same register
       if ( bit != 0 )
         if ( (curr_8_states >> (bit-1)) & 0x1 ) num_alive++;
-      
-      // look west
-      if ( (bit == 7) && (i % world_length != 0) ){
+        
+      // look north
+      if ( i > (world_length - 1) ){
+        north_byte = curr_world[i-world_length];
+        if ( (north_byte >> (bit))   & 0x1 ) num_alive++;
+        if ( bit == 0 ){
+          if ( (north_byte >> (bit+1)) & 0x1 ) num_alive++;
+        }
+        else if ( bit == 7 ){
+          if ( (north_byte >> (bit-1)) & 0x1 ) num_alive++;
+        }
+        else{
+          if ( (north_byte >> (bit+1)) & 0x1 ) num_alive++;
+          if ( (north_byte >> (bit-1)) & 0x1 ) num_alive++;
+        }
+      } 
+
+      // look south but don't have to if already past threshold
+      if ( (i < (arr_length - world_length)) && (num_alive < threshold) ){
+        south_byte = curr_world[i+world_length];
+        if ( (south_byte >> (bit))   & 0x1 ) num_alive++;
+        if ( bit == 0 ){
+          if ( (south_byte >> (bit+1)) & 0x1 ) num_alive++;
+        }
+        else if ( bit == 7 ){
+          if ( (south_byte >> (bit-1)) & 0x1 ) num_alive++;
+        }
+        else{
+          if ( (south_byte >> (bit-1)) & 0x1 ) num_alive++;
+          if ( (south_byte >> (bit+1)) & 0x1 ) num_alive++;
+        }
+      }
+
+      // look west in diff reg
+      if ( (bit == 7) && (i % world_length != 0) && (num_alive < threshold) ){
         // for the lsb
         if ( curr_world[i-1] & 0x1 ) num_alive++;
+        NW_byte = curr_world[i-world_length-1];
+        if ( NW_byte & 0x1 ) num_alive++;
+        SW_byte = curr_world[i+world_length-1];
+        if ( SW_byte & 0x1 ) num_alive++;
       }
-      // look east
-      if ( (bit == 0) && ((i + 1) % world_length != 0) ){
+      
+      // look east in diff reg
+      if ( (bit == 0) && ((i + 1) % world_length != 0) && (num_alive < threshold) ){
         // for the msb
         if ( (curr_world[i-1] >> 7) & 0x1 ) num_alive++;
+        NE_byte = curr_world[i-world_length+1];
+        if ( (NE_byte >> 7) & 0x1 ) num_alive++;
+        SE_byte = curr_world[i+world_length+1];
+        if ( (SE_byte >> 7) & 0x1 ) num_alive++;
       }
-      // look north
-      if ( (i > (world_length - 1)) ){
-        north_byte = curr_world[i-world_length];
-        if ( (north_byte >> (bit-1)) & 0x1 ) num_alive++;
-        if ( (north_byte >> (bit))   & 0x1 ) num_alive++;
-        if ( (north_byte >> (bit+1)) & 0x1 ) num_alive++;
-      } 
-      // look south
-      if ( (i < (arr_length - world_length)) ){
-        south_byte = curr_world[i+world_length];
-        if ( (south_byte >> (bit-1)) & 0x1 ) num_alive++;
-        if ( (south_byte >> (bit))   & 0x1 ) num_alive++;
-        if ( (south_byte >> (bit+1)) & 0x1 ) num_alive++;
-      }
+
       // Determine if an alive cell will die 
       if (curr_bit && (num_alive < 2 || num_alive > 3)) 
         next_8_states ^= (uint8_t)(1 << bit);
+
       // Determine if a dead cell will be alive
-      else if ( !curr_bit && (num_alive == 3)){
+      else if ( !curr_bit && (num_alive == 3))
         next_8_states ^= (uint8_t)(1 << bit);
-      }
-      // printf("B[%d] b[%d] alive:%d num_alive:%d st:%x \n", i, bit, curr_bit, 
-        // num_alive, next_8_states);
+      
+      if (i==9 && bit==7)
+        printf("B[%d] b[%d] alive:%d num_alive:%d st:%x \n", i, bit, curr_bit, 
+        num_alive, next_8_states);
     }
     next_world[i] = next_8_states;
   }
@@ -90,13 +121,13 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
 }
 
 int gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test, 
-                       uint8_t **ref, int trace ){
+                      uint8_t **ref, int trace ){
   int world_length = N/8;
   int num_elements = N*N/8;
   struct timespec t_start, t_end;
 	long double average = 0, st, ed, diff;
-  if ( P > 1024 )
-  int blocks = 
+  // if ( P > 1024 )
+  // int blocks = 
   dim3 Block(1); // Square pattern
   dim3 Grid(P);
   uint8_t *dev_curr_world, *dev_next_world;
@@ -118,15 +149,15 @@ int gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test,
     if ( test && !world_bits_correct(world, ref[i], N)) return 1;
     if ( trace ) print_world_bits(world, N);
   }
-  printf("1|%.13LF|\n", average);
+  printf("1|%d|%d|%d|%.13LF|\n", P, N, rounds, average);
   return 0;
 }
 
 int main( int argc, char** argv ){
   int test   = 0; // Run direct test cases
   int P      = 1; // number of threads
-  int N      = 8; /* Matrix size */
-  int ROUNDS = 5; /* Number of Rounds */
+  int N      = 8; // Matrix size 
+  int ROUNDS = 5; // Number of Rounds
   int trace  = 0; // print trace of world  
   if ( argc > 1 ) test = atoi(argv[1]); 
   if ( argc > 2 ) {
@@ -212,6 +243,16 @@ int main( int argc, char** argv ){
       ref[r] = test_8[r+1];
     if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
 
+    // T9
+    num_tests++;
+    printf("Running test %d\n", num_tests);
+    world  = test_9[0];
+    N      = T9_DIM;
+    ROUNDS = T9_ROUNDS - 1;
+    for ( int r = 0; r < ROUNDS; r++ )
+      ref[r] = test_9[r+1];
+    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    
     printf("%s %d/%d tests passed %s\n", KBLU, num_correct, num_tests, KNRM);
     free(ref);
   }
