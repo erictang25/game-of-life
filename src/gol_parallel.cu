@@ -162,8 +162,9 @@ int main( int argc, char** argv ){
       N = 8;
     } 
   }
-  if ( argc > 3 ) { 
-    P = atoi(argv[3]); // number of threads
+  if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
+  if ( argc > 4 ) { 
+    P = atoi(argv[4]); // number of threads
     if ( P > N*N/8 ){
       printf( "Invalid P:[%ld]; Too many threads for number of elements %ld\n", P, N*N/8 );
       return 1;
@@ -173,7 +174,6 @@ int main( int argc, char** argv ){
       return 1;
     }
   }
-  if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
   if ( argc > 5 ) trace  = atoi(argv[5]); 
   uint8_t *world, **ref;
   if (test){
@@ -263,8 +263,5 @@ int main( int argc, char** argv ){
     gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace );
     free(world);
   }
-  // for (int i =0; i < N; i++){
-  //   printf("%d ", world[i]);
-  // }
   return 0;
 }

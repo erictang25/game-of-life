@@ -1,5 +1,4 @@
 # Makefile for GoL
-
 CC = gcc
 CCFLAGS = -O3 -std=gnu99 -Wall
 CPP = g++
@@ -37,9 +36,21 @@ seq_tests: $(SEQ_SOURCES)
 	./gol_seq 6 
 	./gol_seq 7 
 	./gol_seq 8 
+	./gol_seq 9 
 
-test_bits_para: clean gol_parallel
-	./gol_parallel 1 8 1 
+test_bits_parallel: clean gol_parallel
+	./gol_parallel 0 8     25 2 
+	./gol_parallel 0 16    25 2 
+	./gol_parallel 0 32    25 2 
+	./gol_parallel 0 64    25 2 
+	./gol_parallel 0 128   25 2 
+	./gol_parallel 0 256   25 2 
+	./gol_parallel 0 512   25 2 
+	./gol_parallel 0 1024  25 2 
+	./gol_parallel 0 2048  25 2 
+	./gol_parallel 0 4096  25 2 
+	./gol_parallel 0 8192  25 2 
+	./gol_parallel 0 16384 25 2 
 
 unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
