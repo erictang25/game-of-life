@@ -58,6 +58,10 @@ int main( int argc, char** argv ){
 				break;
 			case 8: A = test_8[0];
 				break;
+			case 9: 
+				N = T9_DIM; ROUNDS = T9_ROUNDS; 
+				A = test_9[0];
+				break;
 			default: printf("Invalid test input");
 				return 0;
 		}
@@ -114,43 +118,39 @@ int game_of_life(int *A, int N, int ROUNDS, int test){
 
 	/* Run Game of Life for set number of iterations */
 	for(int i = 0; i < ROUNDS; i++){
-		printf("ROUND %d\n", i);
-		print_grid(A, N);
-		printf("\n");
-
+	/*  Commented out for timing tests		
+	 *	printf("ROUND %d\n", i);
+ 	 *	print_grid(A, N);
+	 *	printf("\n");
+ 	 */
 		/* Check state if running test */
 		switch(test){
     		case 1:  
-      			if (check_generation_output( A, test_1[i%2], N ))
-        			return -1;
+      			if (check_generation_output( A, test_1[i%2], N )){ return -1; }
 				break;
 			case 2:  
-      			if (check_generation_output( A, test_2[i], N ))
-        			return -1;
+      			if (check_generation_output( A, test_2[i%2], N )){ return -1; }
 				break;
 			case 3:  
-      			if (check_generation_output( A, test_3[i%2], N ))
-        			return -1;
+      			if (check_generation_output( A, test_3[i%2], N )){ return -1; }
 				break;
 			case 4:  
-      			if (check_generation_output( A, test_4[0], N ))
-        			return -1;
+      			if (check_generation_output( A, test_4[0], N )){ return -1; }
 				break;
 			case 5:  
-      			if (check_generation_output( A, test_5[i], N ))
-        			return -1;
+      			if (check_generation_output( A, test_5[0], N )){ return -1; }
 				break;
 			case 6:  
-      			if (check_generation_output( A, test_6[0], N ))
-        			return -1;
+      			if (check_generation_output( A, test_6[0], N )){ return -1; }
 				break;
 			case 7:  
-   		  	 	if (check_generation_output( A, test_7[i], N ))
-        			return -1;
+   		  	 	if (check_generation_output( A, test_7[0], N )){ return -1; }
 				break;
 			case 8:  
-    		  	if (check_generation_output( A, test_8[i], N ))
-        			return -1;
+    		  	if (check_generation_output( A, test_8[0], N )){ return -1; }
+				break;
+			case 9:  
+    		  	if (check_generation_output( A, test_9[i%3], N )){ return -1; }
 				break;
 		}
 
