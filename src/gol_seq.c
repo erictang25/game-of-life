@@ -1,17 +1,15 @@
-/**
- * Eric Tang (et396), Xiaoyu Yan (xy97) 
- * ECE 5720 Final Project Game of Life Sequential Version
+/* ECE 5720 Final Project Game of Life Sequential Version
  * 
  * To compile:
+ *   gcc -O3 -std=gnu99 -Wall -o gol_seq 
  * 
- * 
- * */
+ * Authors: Eric Tang (et396), Xiaoyu Yan (xy97)
+ * Date:    May 6, 2020 
+ */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
-#include "utils.h"
 #include "test_cases.h"
+#include "utils.h"
 
 void srand48(long int seedval);
 int rand();
@@ -21,9 +19,9 @@ int get_num_live_neighbors(int *A, int r, int c, int N);
 int game_of_life(int *A, int N, int ROUNDS, int test);
 
 int main( int argc, char** argv ){
-	int N = 10;     /* Matrix size */
+	int N = 10;     /* Matrix size      */
 	int ROUNDS = 5; /* Number of Rounds */
-	int test = 0;
+	int test = 0;   /* Test to run (0 is random seed) */
 
 	if ( argc > 1 ) test   = atoi(argv[1]); 
 	if ( argc > 2 ) N      = atoi(argv[2]); 
@@ -66,16 +64,17 @@ int main( int argc, char** argv ){
 	} else{
 		/* Dynamically allocate Game of Life Grid*/
 		A = (int*)malloc(N * N * sizeof(int));
+		if(A == NULL){
+    		printf("Memory not allocated. \n");
+    		return 0;
+		}
+
 		/* Randomly initialize grid */
     	srand48(1);
     	for(int r = 0; r < N; r++){
       		for(int c = 0; c < N; c++)
         		A[r * N + c] = rand() % 2;
   		}
-  		if(A == NULL){
-    		printf("Memory not allocated. \n");
-    		return 0;
-		}
 	}
 
 	/* Run and time Game of Life */
@@ -83,7 +82,8 @@ int main( int argc, char** argv ){
 	int status = game_of_life(A, N, ROUNDS, test);
 	clock_gettime(CLOCK_MONOTONIC, &end);   /* End timer */
 
-	if(status == -1)
+	/* Return if failed test */
+	if(status == -1) 
 		return 0;
 
 	if(test > 0)
@@ -105,6 +105,7 @@ int game_of_life(int *A, int N, int ROUNDS, int test){
 
 	int num_neighbors, state;
 
+	/* Grid to store next state for each cell */
 	int *A_new = (int*)malloc(N * N * sizeof(int));
 	if(A_new == NULL){
 		printf("Memory not allocated. \n");
@@ -117,9 +118,10 @@ int game_of_life(int *A, int N, int ROUNDS, int test){
 		print_grid(A, N);
 		printf("\n");
 
+		/* Check state if running test */
 		switch(test){
     		case 1:  
-      			if (check_generation_output( A, test_1[i], N ))
+      			if (check_generation_output( A, test_1[i%2], N ))
         			return -1;
 				break;
 			case 2:  
@@ -152,6 +154,7 @@ int game_of_life(int *A, int N, int ROUNDS, int test){
 				break;
 		}
 
+		/* Calculate next state */
 		for(int r = 0; r < N; r++){
 			for(int c = 0; c < N; c++){
 				num_neighbors = get_num_live_neighbors(A, r, c, N);
@@ -165,7 +168,7 @@ int game_of_life(int *A, int N, int ROUNDS, int test){
 				}
 			}
 		}
-		copy_grid(A, A_new, N);
+		copy_grid(A, A_new, N); /* Update grid with new cell states */
 	}
 
 	free((void *)A_new);
@@ -214,6 +217,5 @@ int get_num_live_neighbors(int *A, int r, int c, int N){
 					num_alive++;
 		}
 	}
-
 	return num_alive;
 }

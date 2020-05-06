@@ -1,5 +1,8 @@
 #include "utils.h"
 
+/* Check if current world state matches reference, 
+ * return 1 if there is an error 
+ */
 int check_generation_output( int *A, int *ref, int N ){
   int mismatch = 0;
   for ( int i = 0; i < N; i++ ){
@@ -23,15 +26,10 @@ int check_generation_output( int *A, int *ref, int N ){
   return mismatch;
 }
 
-/**
- * prints the world assuming each cell is 1 bit
-*/
+/* Print the world assuming each cell is 1 bit */
 void print_world_bits( uint8_t *world, int N ){
   int cell;
-  // by row
-  printf("[\n");
   for ( int i = 0; i < N; i++ ){
-    // by col
     for ( int j = 0; j < N/8; j++){
       // by bits
       for ( int bit = 7; bit >= 0; bit--){
@@ -39,13 +37,11 @@ void print_world_bits( uint8_t *world, int N ){
         if (cell)
           printf( "%d ", cell );
         else
-          // printf( "%d ", cell );
           printf( "  " );
       }
     }
     printf("\n");
   }
-  printf("]\n");
 }
 
 int world_bits_correct( uint8_t *test, uint8_t *ref, int N ){
@@ -65,9 +61,5 @@ int world_bits_correct( uint8_t *test, uint8_t *ref, int N ){
     printf("ref:\n");
     print_world_bits(ref, N);
   }
-  // else{
-  //   printf("%sCORRECT%s\n", KYEL, KNRM);
-  //   print_world_bits(test, N);
-  // } 
   return match; 
 }

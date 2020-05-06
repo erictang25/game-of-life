@@ -1,11 +1,7 @@
-/**
- * Eric Tang (et396), Xiaoyu Yan (xy97) 
- * ECE 5720 Final Project Game of Life Sequential Version
- * 
- * To compile:
- * 
- * 
- * */
+/*
+ * Author: Eric Tang (et396), Xiaoyu Yan (xy97) 
+ * Date:   May 6, 2020
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +17,6 @@
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
 
-int check_generation_output( int *A, int *ref, int N );
+int check_generation_output(int *A, int *ref, int N);
 void print_world_bits( uint8_t *world, int N );
 int world_bits_correct( uint8_t *test, uint8_t *ref, int N );

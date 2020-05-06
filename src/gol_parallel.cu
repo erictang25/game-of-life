@@ -6,20 +6,19 @@
  * To compile:
  * 
  * 
- * */
+ */
 
-// #include "cuda_profiler_api.h"
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
+
 #define BUFFER_SIZE 10
-/* 
- * Each byte is 8 cells
- * Each cell is one bit
- * curr_world : shared array for the entire grid
- * next_world : next shared array for the entire grid
- * num_bytes  : number of bytes to iterate through for this kernel; each byte is
- * 8 cells
+
+/* Each byte is 8 cells, each cell is one bit
+ * curr_world  : shared array for the entire grid
+ * next_world  : next shared array for the entire grid
+ * num_bytes   : number of bytes to iterate through for this kernel,
+ *               each byte is 8 cells
  * world_length: length of the ????  
  */
 __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_bytes, 
@@ -114,10 +113,6 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, int num_byt
     }
     next_world[i] = next_8_states;
   }
-  // __syncthreads();
-  // for ( int i = x*blockDim.x*gridDim.x; i < num_bytes; i++ ){
-  //   curr_world[i] = next_world[i];
-  // }
 }
 
 int gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test, 
@@ -155,6 +150,7 @@ int gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test,
 }
 
 int main( int argc, char** argv ){
+  // Default values
   int test   = 0; // Run direct test cases
   int P      = 1; // number of threads
   int N      = 8; // Matrix size 
@@ -184,7 +180,7 @@ int main( int argc, char** argv ){
   uint8_t *world, **ref;
   if (test){
     int num_correct = 0, num_tests = 0;
-    // T1
+    // Test 1
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_1[0];
@@ -194,7 +190,7 @@ int main( int argc, char** argv ){
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_1[r+1];
     if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
-    // T2
+    // Test 2
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_2[0];
