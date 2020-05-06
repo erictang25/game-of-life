@@ -149,7 +149,8 @@ int gol_bit_per_cell( uint8_t *world, int N, int P, int rounds, int test,
     if ( test && !world_bits_correct(world, ref[i], N)) return 1;
     if ( trace ) print_world_bits(world, N);
   }
-  printf("1|%d|%d|%d|%.13LF|\n", P, N, rounds, average);
+  printf("Grid Size: %dx%d, # Rounds: %d, # Threads: %d\n", N, N, rounds, P);
+  printf("Average time per round: %.13LFs\n", average);
   return 0;
 }
 
@@ -242,7 +243,6 @@ int main( int argc, char** argv ){
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_8[r+1];
     if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
-
     // T9
     num_tests++;
     printf("Running test %d\n", num_tests);

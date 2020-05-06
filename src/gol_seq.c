@@ -13,7 +13,6 @@
 #include "utils.h"
 #include "test_cases.h"
 
-
 void srand48(long int seedval);
 int rand();
 void print_grid(int *A, int N);
@@ -31,7 +30,7 @@ int main( int argc, char** argv ){
 	if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
   
 	struct timespec start, end;
-	double diff;
+	long double diff;
 	int *A;
 
 	/* Initialize Game of Life Grid */
@@ -94,9 +93,9 @@ int main( int argc, char** argv ){
 
 	/* Calculate runtime */
 	diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
-	diff /= BILLION;
-	printf("%d rounds of Game of Life\n", ROUNDS);
-	printf("Runtime: %8f sec\n", diff);
+	diff /= (long double)(BILLION * ROUNDS);
+	printf("Grid, %dx%d, %d rounds,\n", N, N, ROUNDS);
+	printf("Runtime: %.13LF sec\n", diff);
 	
 	return 0;  
 }
