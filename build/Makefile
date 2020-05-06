@@ -13,15 +13,17 @@ src = ../src
 SEQ_SOURCES = ../src/gol_seq.c ../src/utils.c
 
 OBJ = utils.o
-CUDAOBJ = cuda_utils.o
 
-default: gol_seq
+default: gol_seq gol_parallel
 
 utils.o: $(src)/utils.c $(src)/utils.h 
 	$(CPP) $(CPPFLAGS) -c -o $@ $(LDFLAGS) $<
 
 gol_seq: $(SEQ_SOURCES)
 	$(CC) $(CCFLAGS) -o $@ $^ 
+
+gol_bits_seq: $(src)/gol_bits_seq.c ../src/utils.c
+	$(CC) $(CPPFLAGS) -o $@ $(LDFLAGS) $^
 
 gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
@@ -43,4 +45,4 @@ unit_test: $(src)/unit_test.c $(OBJ)
 	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
-	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test
+	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test gol_bits_seq *.out

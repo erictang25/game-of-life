@@ -1,35 +1,27 @@
 /**
  * Eric Tang (et396), Xiaoyu Yan (xy97) 
- * ECE 5720 Final Project Game of Life Parallel Version
- * Parallel version using bit per cell implementation
+ * ECE 5720 Final Project Game of Life Sequential Version
+ * Sequential version using bit per cell implementation
  * 
  * To compile:
  * 
  * 
  */
 
+#include <time.h>
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
+#include <string.h>
 
-/* Each byte is 8 cells, each cell is one bit
- * curr_world  : shared array for the entire grid
- * next_world  : next shared array for the entire grid
- * num_bytes   : number of bytes to iterate through for this kernel,
- *               each byte is 8 cells
- * world_length: length of the ????  
- */
-__global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, uint64_t num_bytes, 
-                           uint64_t world_length, uint64_t arr_length ){
-  int x = threadIdx.x + blockIdx.x * blockDim.x;
-  // int offset = blockDim.x * gridDim.x;
+void gol_cycle_seq( uint8_t *curr_world, uint8_t *next_world, uint64_t num_bytes, 
+                    uint64_t world_length, uint64_t arr_length ){
   register uint8_t curr_8_states, curr_bit = 0, next_8_states = 0,
                    num_alive = 0, north_byte, south_byte, threshold = 4;
   uint8_t NE_byte, SE_byte, NW_byte, SW_byte;
-  uint64_t start = x*num_bytes; 
-  uint64_t end   = start + num_bytes;   
-  // printf("nb[%d] s[%d] e[%d] x:[%d] \n", num_bytes, start, end, x);                       
-  for ( uint64_t i = start; i < end; i++ ){
+  int start = 0; 
+  int end   = start + num_bytes;                         
+  for ( int i = start; i < end; i++ ){
     curr_8_states = curr_world[i];
     next_8_states = curr_8_states;
     for (int bit = 0; bit < 8; bit ++){
@@ -109,30 +101,17 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, uint64_t nu
   }
 }
 
-int gol_bit_per_cell( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test, 
+int gol_bit_per_cell_seq( uint8_t *world, uint64_t N, int rounds, int test, 
                       uint8_t **ref, int trace ){
   uint64_t world_length = N/8;
   uint64_t num_elements = N*N/8;
   struct timespec t_start, t_end;
 	long double average = 0, st, ed, diff;
-  int blocks = 1;
-  while ( P > 1024 ){
-    P -= 1024;
-    blocks ++;
-  }
-  // int blocks = 
-  dim3 Block(blocks); // Square pattern
-  dim3 Grid(P);
-  uint8_t *dev_curr_world, *dev_next_world;
-  cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
-  cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
-  // cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
+  uint8_t *dev_next_world = (uint8_t*)malloc(num_elements * sizeof(uint8_t));
   for ( int i = 0; i < rounds; i++ ){
     clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start Timer */
-    cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
-    gol_cycle<<<Grid, Block>>>( dev_curr_world, dev_next_world, N*N/8/P, 
-                                world_length, num_elements );
-    cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+    gol_cycle_seq( world, dev_next_world, num_elements, world_length, num_elements );
+    memcpy(world, dev_next_world, num_elements*sizeof(uint8_t) );
     clock_gettime(CLOCK_MONOTONIC, &t_end);   /* End timer */
     st = t_start.tv_sec + (long double)t_start.tv_nsec/BILLION;
     ed = t_end.tv_sec + (long double)t_end.tv_nsec/BILLION;
@@ -142,8 +121,9 @@ int gol_bit_per_cell( uint8_t *world, uint64_t N, uint64_t P, int rounds, int te
     if ( test && !world_bits_correct(world, ref[i], N)) return 1;
     if ( trace ) print_world_bits(world, N);
   }
-  printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
+  printf("\nGrid Size: %ldx%ld, # Rounds: %d\n", N, N, rounds);
   printf("Average time per round: %.13LFs\n", average);
+  free(dev_next_world);
   return 0;
 }
 
@@ -151,7 +131,6 @@ int main( int argc, char** argv ){
   // Default values
   int test   = 0; // Run direct test cases
   uint64_t N = 8; // Matrix size 
-  uint64_t P = 1; // number of threads
   int ROUNDS = 5; // Number of Rounds
   int trace  = 0; // print trace of world  
   if ( argc > 1 ) test = atoi(argv[1]); 
@@ -162,19 +141,8 @@ int main( int argc, char** argv ){
       N = 8;
     } 
   }
-  if ( argc > 3 ) { 
-    P = atoi(argv[3]); // number of threads
-    if ( P > N*N/8 ){
-      printf( "Invalid P:[%ld]; Too many threads for number of elements %ld\n", P, N*N/8 );
-      return 1;
-    }
-    if ( N*N/8 % P != 0 ){
-      printf( "Invalid P:[%ld]; Number of threads should be a factor of %ld\n", P, N*N/8 );
-      return 1;
-    }
-  }
-  if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
-  if ( argc > 5 ) trace  = atoi(argv[5]); 
+  if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
+  if ( argc > 4 ) trace  = atoi(argv[4]); 
   uint8_t *world, **ref;
   if (test){
     int num_correct = 0, num_tests = 0;
@@ -187,56 +155,56 @@ int main( int argc, char** argv ){
     ref    = (uint8_t**) malloc( sizeof(uint8_t*) * ROUNDS );
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_1[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // Test 2
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_2[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_2[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T3
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_3[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_3[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T4
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_4[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_4[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T5
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_5[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_5[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T6
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_6[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_6[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T7
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_7[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_7[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T8
     num_tests++;
     printf("Running test %d\n", num_tests);
     world  = test_8[0];
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_8[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     // T9
     num_tests++;
     printf("Running test %d\n", num_tests);
@@ -245,26 +213,22 @@ int main( int argc, char** argv ){
     ROUNDS = T9_ROUNDS - 1;
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_9[r+1];
-    if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
+    if (!gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace )) num_correct++;
     
     printf("%s %d/%d tests passed %s\n", KBLU, num_correct, num_tests, KNRM);
     free(ref);
   }
   else {
     srand48(1);
-    uint64_t n_elements = N*N/8;
-    world = (uint8_t*)malloc(n_elements * sizeof(uint8_t));
+    int num_elements = N*N/8;
+    world = (uint8_t*)malloc(num_elements * sizeof(uint8_t));
     for(int r = 0; r < N; r++){
       for(int c = 0; c < N/8; c++)
         world[r*N/8+c] = (uint8_t)(rand() % 256);
     } 
-    ref   = NULL;
+    ref = NULL;
     if (trace) print_world_bits( world, N );
-    gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace );
+    gol_bit_per_cell_seq( world, N, ROUNDS, test, ref, trace );
     free(world);
   }
-  // for (int i =0; i < N; i++){
-  //   printf("%d ", world[i]);
-  // }
-  return 0;
 }

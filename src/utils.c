@@ -35,9 +35,10 @@ void print_world_bits( uint8_t *world, int N ){
       for ( int bit = 7; bit >= 0; bit--){
         cell = (world[i*N/8+j] >> bit) & 0x1;
         if (cell)
-          printf( "%d ", cell );
+          // printf( "%sO%s",KYEL,KNRM );
+          printf( "%sO%s",KYEL,KNRM );
         else
-          printf( "  " );
+          printf( " " );
       }
     }
     printf("\n");

@@ -8,18 +8,19 @@
  */
 
 #include <time.h>
+#include <stdint.h>
 #include "test_cases.h"
 #include "utils.h"
 
 void srand48(long int seedval);
 int rand();
-void print_grid(int *A, int N);
-void copy_grid(int *old, int *new, int N);
-int get_num_live_neighbors(int *A, int r, int c, int N);
-int game_of_life(int *A, int N, int ROUNDS, int test);
+void print_grid(int *A, uint64_t N);
+void copy_grid(int *old, int *new, uint64_t N);
+int get_num_live_neighbors(int *A, int r, int c, uint64_t N);
+int game_of_life(int *A, uint64_t N, int ROUNDS, int test);
 
 int main( int argc, char** argv ){
-	int N = 10;     /* Matrix size      */
+	uint64_t N = 10;     /* Matrix size      */
 	int ROUNDS = 5; /* Number of Rounds */
 	int test = 0;   /* Test to run (0 is random seed) */
 
@@ -98,14 +99,14 @@ int main( int argc, char** argv ){
 	/* Calculate runtime */
 	diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
 	diff /= (long double)(BILLION * ROUNDS);
-	printf("Grid, %dx%d, %d rounds,\n", N, N, ROUNDS);
+	printf("Grid, %ldx%ld, %d rounds,\n", N, N, ROUNDS);
 	printf("Runtime: %.13LF sec\n", diff);
 	
 	return 0;  
 }
 
 
-int game_of_life(int *A, int N, int ROUNDS, int test){
+int game_of_life(int *A, uint64_t N, int ROUNDS, int test){
 
 	int num_neighbors, state;
 
@@ -175,7 +176,7 @@ int game_of_life(int *A, int N, int ROUNDS, int test){
 	return 0;
 }
 
-void print_grid( int *A, int N ){
+void print_grid( int *A, uint64_t N ){
 	for(int r = 0; r < N; r++){
 		for(int c = 0; c < N; c++){
 			printf("%d ", A[r * N + c]);
@@ -185,7 +186,7 @@ void print_grid( int *A, int N ){
 }
 
 /* Copy new grid into old grid */
-void copy_grid(int *old, int *new, int N){
+void copy_grid(int *old, int *new, uint64_t N){
 	for(int r = 0; r < N; r++){
 		for(int c = 0; c < N; c++)
 			old[r * N + c] = new[r * N + c];
@@ -195,7 +196,7 @@ void copy_grid(int *old, int *new, int N){
 /* Find number of neighbors that are alive given 
  * a grid and set of coordinates
  */
-int get_num_live_neighbors(int *A, int r, int c, int N){
+int get_num_live_neighbors(int *A, int r, int c, uint64_t N){
 	int row, col;
 	int num_alive = 0;
 	for(int nr = r-1; nr <= r+1; nr++){
