@@ -29,20 +29,23 @@ int check_generation_output( int *A, int *ref, int N ){
 /* Print the world assuming each cell is 1 bit */
 void print_world_bits( uint8_t *world, int N ){
   int cell;
-  for ( int i = 0; i < N; i++ ){
+	for ( int i = 0; i < N; i++ ){
+		printf(" ");
     for ( int j = 0; j < N/8; j++){
-      // by bits
       for ( int bit = 7; bit >= 0; bit--){
         cell = (world[i*N/8+j] >> bit) & 0x1;
         if (cell)
+			printf("%s  %s", BGRN, BNRM);
           // printf( "%sO%s",KYEL,KNRM );
-          printf( "%sO%s",KYEL,KNRM );
+//          printf( "%sO%s",KYEL,KNRM );
         else
-          printf( " " );
+//        	printf( " " );
+			printf("%s  %s", BRED, BNRM);
       }
     }
     printf("\n");
   }
+    printf("\n");
 }
 
 int world_bits_correct( uint8_t *test, uint8_t *ref, int N ){
