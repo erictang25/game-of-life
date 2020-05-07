@@ -8,6 +8,7 @@
  * 
  */
 
+#include <cuda_runtime.h>  
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
@@ -123,17 +124,19 @@ int gol_bit_per_cell( uint8_t *world, uint64_t N, uint64_t P, int rounds, int te
   // int blocks = 
   dim3 Block(blocks); // Square pattern
   dim3 Grid(P);
-  uint8_t *dev_curr_world, *dev_next_world;
+  uint8_t *dev_curr_world, *dev_next_world, *tmp;
   cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
   cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
-  // cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
+  cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
   for ( int i = 0; i < rounds; i++ ){
     clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start Timer */
-    cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
-    gol_cycle<<<Grid, Block>>>( dev_curr_world, dev_next_world, N*N/8/P, 
-                                world_length, num_elements );
+    gol_cycle<<<Grid, Block>>>( dev_curr_world, dev_next_world, N*N/8/P, world_length, num_elements );
     cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+    tmp = dev_curr_world;
+    dev_curr_world = dev_next_world;
+    dev_next_world = tmp;
     clock_gettime(CLOCK_MONOTONIC, &t_end);   /* End timer */
+    
     st = t_start.tv_sec + (long double)t_start.tv_nsec/BILLION;
     ed = t_end.tv_sec + (long double)t_end.tv_nsec/BILLION;
     diff = ed - st;
@@ -142,8 +145,9 @@ int gol_bit_per_cell( uint8_t *world, uint64_t N, uint64_t P, int rounds, int te
     if ( test && !world_bits_correct(world, ref[i], N)) return 1;
     if ( trace ) print_world_bits(world, N);
   }
-  printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
-  printf("Average time per round: %.13LFs\n", average);
+  // printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
+  // printf("Average time per round: %.13LFs | cpy_avg: %.13LF\n", average, average_cpy);
+  printf("1|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
   return 0;
 }
 
