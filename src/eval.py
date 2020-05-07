@@ -2,8 +2,8 @@
 import os
 
 
-dims      = [ 2**i for i in range(3, 17) ]
-nthreads  = [ 2**i for i in range(3, 23) ]
+dims      = [ 2**i for i in range(8, 17) ]
+nthreads  = [ 2**i for i in range(8, 23) ]
 
 rounds = 10
 

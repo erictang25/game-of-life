@@ -28,8 +28,7 @@ __global__ void gol_cycle( uint8_t *curr_world, uint8_t *next_world, uint64_t nu
                    num_alive = 0, north_byte, south_byte, threshold = 4;
   uint8_t NE_byte, SE_byte, NW_byte, SW_byte;
   uint64_t start = x*num_bytes; 
-  uint64_t end   = start + num_bytes;   
-  // printf("nb[%d] s[%d] e[%d] x:[%d] \n", num_bytes, start, end, x);                       
+  uint64_t end   = start + num_bytes;                 
   for ( uint64_t i = start; i < end; i++ ){
     curr_8_states = curr_world[i];
     next_8_states = curr_8_states;
@@ -249,6 +248,7 @@ int main( int argc, char** argv ){
     ROUNDS = T9_ROUNDS - 1;
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_9[r+1];
+    if (trace) print_world_bits( world, N );
     if (!gol_bit_per_cell( world, N, P, ROUNDS, test, ref, trace )) num_correct++;
     
     printf("%s %d/%d tests passed %s\n", KBLU, num_correct, num_tests, KNRM);
