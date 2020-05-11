@@ -12,42 +12,6 @@
 #include "utils.h"
 #include "test_case_bits.h"
 #include "lut.h"
-
-inline __device__ uint8_t getCellState(int x, int y, uint key) {
-  uint64_t index = x + 10 * y;
-  return (key >> ((3 * 10 - 1) - index)) & 0x1;
-}
-
-/* Writes LUT
- * num_elements: number of elements in the LUT each thread is 
- *               responsible for
- */
-__global__ void compute10x3LUTKernel(uint8_t* LUT, int num_elements) {
-	uint64_t tableIndex = blockIdx.x * blockDim.x + threadIdx.x; 
-   
-	for (int i = 0; i < num_elements; i++){
-		uint8_t resultState = 0;
-		// For each cell.
-		for (int x = 1; x < 9; x++) {
-			// Count alive neighbors.
-			uint8_t aliveCount = 0;
-			for (int dx = -1; dx < 2; dx++) {
-				for (int dy = -1; dy < 2; dy++) {
-					aliveCount += getCellState(x + dx, 1 + dy, tableIndex);
-				}
-			}
-		
-			uint64_t centerState = getCellState(x, 1, tableIndex);
-			aliveCount -= centerState;  // Do not count center cell in the sum.
-		
-			if (aliveCount == 3 || (aliveCount == 2 && centerState == 1)) {
-				resultState |= 1 << (8 - x);
-			}
-		}
-		LUT[tableIndex] = resultState;
-		tableIndex++;
-	}
-}
    
 /* Each byte is 8 cells, each cell is one bit
  * curr_world  : shared array for the entire grid
@@ -133,7 +97,7 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
   dim3 Block(blocks); // Square pattern
   dim3 Grid(P);
 
-/* Dynamically allocate memory for world */
+  /* Dynamically allocate memory for world */
   uint8_t *dev_curr_world, *dev_next_world, *LUT;
   cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
 	cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
@@ -247,7 +211,7 @@ int main( int argc, char** argv ){
     if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
     num_correct++;
 
-  // Test 6
+    // Test 6
     printf("Running test 6\n");
     world  = test_6[0];
     for ( int r = 0; r < ROUNDS; r++ )
@@ -278,8 +242,8 @@ int main( int argc, char** argv ){
     ROUNDS = T9_ROUNDS - 1;
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_9[r+1];
-  if (!gol_lut( world, N, P, ROUNDS, test, ref, trace)) 
-    num_correct++;
+    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace)) 
+      num_correct++;
   
     printf("%s %d/9 tests passed %s\n", KBLU, num_correct, KNRM);
     free(ref);
