@@ -20,9 +20,9 @@ int get_num_live_neighbors(int *A, int r, int c, uint64_t N);
 int game_of_life(int *A, uint64_t N, int ROUNDS, int test);
 
 int main( int argc, char** argv ){
-	uint64_t N = 10;     /* Matrix size      */
-	int ROUNDS = 5; /* Number of Rounds */
-	int test = 0;   /* Test to run (0 is random seed) */
+	uint64_t N = 10; /* Matrix size */
+	int ROUNDS = 5;  /* Number of Rounds */
+	int test = 0;    /* Test to run (0 is random) */
 
 	if ( argc > 1 ) test   = atoi(argv[1]); 
 	if ( argc > 2 ) N      = atoi(argv[2]); 
@@ -33,7 +33,7 @@ int main( int argc, char** argv ){
 	int *A;
 
 	/* Initialize Game of Life Grid */
-	if (test>0){
+	if (test > 0){
 		N = T1_DIM;
 		ROUNDS = T1_ROUNDS;
 		switch(test){

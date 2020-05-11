@@ -1,4 +1,4 @@
-/**
+/*
  * Eric Tang (et396), Xiaoyu Yan (xy97) 
  * ECE 5720 Final Project Game of Life Sequential Version
  * Sequential version using bit per cell implementation
