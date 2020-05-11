@@ -52,8 +52,8 @@ test_bits_parallel: clean gol_parallel
 	./gol_parallel 0 8192  25 2 
 	./gol_parallel 0 16384 25 2 
 
-unit_test: $(src)/unit_test.c $(OBJ)
-	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
+gol_lut_parallel: $(src)/gol_lut_parallel.cu $(OBJ)
+	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test gol_bits_seq *.out
