@@ -136,7 +136,7 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 	  
   // printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
   // printf("Average time per round: %.13LFs\n", average);
-  printf("3|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
+  printf("4|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
   return 0;
 }
 

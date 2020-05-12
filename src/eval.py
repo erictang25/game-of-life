@@ -17,8 +17,8 @@ def run_evals(output_file):
     # os.system("./gol_seq 0 {} {} >> gol_seq_results.out".format(d, rounds))
     for p in nthreads:
       if d*d/8 >= p:
-        os.system("./gol_lut_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
-        # os.system("./gol_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
+        os.system("./gol_lut3x6_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
+        os.system("./gol_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
 
 
 def write_to_csv(input_file, output_file):
