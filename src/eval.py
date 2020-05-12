@@ -3,8 +3,8 @@ import os
 import csv
 
 # dims      = [ 2**i for i in range(3, 17) ]
-dims      = [ 2**i for i in range(3, 15) ]
-nthreads  = [ 2**i for i in range(3, 23) ]
+dims      = [ 2**i for i in range(4, 17) ]
+nthreads  = [ 2**i for i in range(6, 23) ]
 # dims      = [ 2**i for i in range(3, ) ]
 # nthreads  = [ 2**i for i in range(3, 6) ]
 
@@ -18,7 +18,7 @@ def run_evals(output_file):
     for p in nthreads:
       if d*d/8 >= p:
         os.system("./gol_lut_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
-        os.system("./gol_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
+        # os.system("./gol_parallel 0 {} {} {} >> {}".format(d, rounds, p, output_file))
 
 
 def write_to_csv(input_file, output_file):
@@ -57,5 +57,5 @@ def write_to_csv(input_file, output_file):
 if __name__ == "__main__":
   sim_output = 'gol_parallel_results.out'
   csv_output = 'run_times.csv'
-  # run_evals(sim_output)
+  run_evals(sim_output)
   write_to_csv(sim_output, csv_output)

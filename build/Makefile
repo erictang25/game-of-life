@@ -65,14 +65,11 @@ test_lut_parallel: gol_lut_parallel
 	./gol_lut_parallel 1 8 1 1 
 	./gol_lut_parallel 1 8 1 2
 
-test_lut3x6_parallel: test_lut3x6_parallel
-	./gol_lut_parallel 1 8 1 1 
-	./gol_lut_parallel 1 8 1 2 
+test_lut3x6_parallel: gol_lut3x6_parallel
+	./gol_lut3x6_parallel 1 8 1 1 
+	./gol_lut3x6_parallel 1 8 1 2 
 
-gol_lut_parallel: $(src)/gol_lut_parallel.cu $(OBJ)
-	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
-
-eval: gol_lut_parallel gol_parallel
+eval: gol_lut3x6_parallel 
 	python ../src/eval.py
 
 clean:

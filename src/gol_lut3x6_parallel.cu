@@ -116,9 +116,9 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 	uint64_t world_length = N/8;
   uint64_t num_elements = N*N/8;
   int blocks = 1;
-  while ( P > 1024 ){
-    P -= 1024;
-    blocks ++;
+  if ( P > 1024 ){
+    blocks = P/1024;
+    P = 1024;
   }
 	/* LUT parameters */
 	uint64_t LUT_size = pow(2,18);

@@ -35,71 +35,29 @@ __global__ void gol_lut_cycle(uint8_t *curr_world, uint8_t *next_world,
   uint16_t top, mid, bot;
   uint32_t lut_index;
   for(uint64_t i = start; i < end; i++){
-    next_world[i] = 0;
-    for( int j = 0; j < 8; j+= lut_row_size ){
-      curr_states = ( curr_world[i] >> j ) & 0xf;
-      
-      // TODO Find 3x10 array of cell states
-      // TODO Find new byte in LUT
-      state_N = 0;
-      state_S = 0; 
-      state_E = 0; 
-      state_W = 0; 
-      state_SW = 0; 
-      state_SE = 0; 
-      state_NW = 0; 
-      state_NE = 0;
-      if ( j == 0 ){
-        // look north
-        if ( i > (world_length - 1) ){
-          state_N = curr_world[i-world_length] & 0xf;
-        }
-        // look south
-        if ( i < (arr_length - world_length) ){
-          state_S = curr_world[i+world_length] & 0xf;
-        }
-        // look west
-        state_W  = (curr_world[i] >> lut_row_size) & 0x1;
-        state_NW = (curr_world[i-world_length] >> lut_row_size ) & 0x1;
-        state_SW = (curr_world[i+world_length] >> lut_row_size ) & 0x1;
-        
-        // look east
-        if ((i + 1) % world_length != 0){
-          state_E  = (curr_world[i+1] >> 7) & 0x1;
-          state_NE = (curr_world[i-world_length+1] >> 7) & 0x1;
-          state_SE = (curr_world[i+world_length+1] >> 7) & 0x1; 
-        }
-      }
-      else if ( j == 8 - lut_row_size ){
-        // look north
-        if ( i > (world_length - 1) ){
-          state_N = (curr_world[i-world_length] >> j) & 0xf;
-        }
-        // look south
-        if ( i < (arr_length - world_length) ){
-          state_S = (curr_world[i+world_length] >> j) & 0xf;
-        }
-        // look west
-        if ( i % world_length != 0 ){
-          state_W  = curr_world[i-1] & 0x1;
-          state_NW = curr_world[i-world_length-1] & 0x1;
-          state_SW = curr_world[i+world_length-1] & 0x1;
-        }
-        // Look east
-        state_E  = (curr_world[i] >> (j-1)) & 0x1;
-        state_NE = (curr_world[i-world_length] >> (j - 1)) & 0x1;
-        state_SE = (curr_world[i+world_length] >> (j - 1)) & 0x1; 
-        
-      }    
-      top = ((state_NW<<(lut_row_size+1))|(state_N<<1)    |state_NE) & 0x3f;
-      mid = ((state_W <<(lut_row_size+1))|(curr_states<<1)|state_E)  & 0x3f;
-      bot = ((state_SW<<(lut_row_size+1))|(state_S<<1)    |state_SE) & 0x3f;
-      lut_index = ((top<< ((lut_row_size+2)*2))|(mid<<(lut_row_size+2))|bot)&0x3ffff;
-      next_world[i] |= LUT[lut_index] << j;
-      // printf("j[%d] i[%ld] lut_i[%d] top[%x] mid[%d] bot[%d] curr[%d] next[%d] W[%d] cs[%d] E[%d] NE[%d] SE[%d]\n", 
-      // j, i, lut_index, 
-      //       top, mid, bot, curr_world[i], next_world[i], state_W, curr_states, 
-      //       state_E, state_NE, state_SE);
+  // TODO Find 3x10 array of cell states
+  // TODO Find new byte in LUT
+    curr_states = curr_world[i];
+    state_N = 0;
+    state_S = 0; 
+    state_E = 0; 
+    state_W = 0; 
+    state_SW = 0; 
+    state_SE = 0; 
+    state_NW = 0; 
+    state_NE = 0;
+    if ( i > (world_length - 1) ){
+      state_N = curr_world[i-world_length];
+    }
+
+    if ( i < (arr_length - world_length) ){
+      state_S = curr_world[i+world_length];
+    }
+    // look west
+    if ( i % world_length != 0 ){
+      state_W  = curr_world[i-1] & 0x1;
+      state_NW = curr_world[i-world_length-1] & 0x1;
+      state_SW = curr_world[i+world_length-1] & 0x1;
     }
     // Look east
     if ((i + 1) % world_length != 0){
