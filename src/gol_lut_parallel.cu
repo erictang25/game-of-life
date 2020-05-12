@@ -118,7 +118,7 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 	/* Precompute LUT */
 	compute10x3LUTKernel<<<Grid, Block>>>(LUT, num_entries);
 
-    clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start timer */
+  	clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start timer */
 	for ( int i = 0; i < rounds; i++ ){
     	gol_lut_cycle<<<Grid, Block>>>(dev_curr_world, dev_next_world, LUT,
                                        num_elements/P, row_length, N);
@@ -131,15 +131,16 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
     	if (trace) 
 	    	print_world_bits(world, N);
 	}
-    clock_gettime(CLOCK_MONOTONIC, &t_end); /* End timer */
+  	clock_gettime(CLOCK_MONOTONIC, &t_end); /* End timer */
 
 	/* Calculate average runtime per round */
 	start = t_start.tv_sec + (long double)t_start.tv_nsec/BILLION;
 	end = t_end.tv_sec + (long double)t_end.tv_nsec/BILLION;
 	average = (end - start)/((long double)rounds);
 	  
-  	printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
-  	printf("Average time per round: %.13LFs\n", average);
+  // printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
+  // printf("Average time per round: %.13LFs\n", average);
+  	printf("4|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
   	return 0;
 }
 
@@ -165,19 +166,18 @@ int main( int argc, char** argv ){
     	if ( P > N*N/8 ){
         	printf( "Invalid P:[%ld]; Too many threads for number of elements %ld\n", P, N*N/8 );
         	return 1;
-    }
-    if ( N*N/8 % P != 0 ){
-        printf( "Invalid P:[%ld]; Number of threads should be a factor of %ld\n", P, N*N/8 );
-        return 1;
-    }
+    	}
+    	if ( N*N/8 % P != 0 ){
+        	printf( "Invalid P:[%ld]; Number of threads should be a factor of %ld\n", P, N*N/8 );
+        	return 1;
+    	}
   }
-  if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
   if ( argc > 5 ) trace  = atoi(argv[5]); 
 
   uint8_t *world, **ref;
 
   	if (test){
-  	/* Setup and run all test cases*/
+  		/* Setup and run all test cases*/
     	int num_correct = 0;
     	N      = T_DIM;
     	ROUNDS = T_ROUNDS - 1;

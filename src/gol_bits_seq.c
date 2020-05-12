@@ -82,7 +82,7 @@ void gol_cycle_seq( uint8_t *curr_world, uint8_t *next_world, uint64_t num_bytes
       // look east in diff reg
       if ( (bit == 0) && ((i + 1) % world_length != 0) && (num_alive < threshold) ){
         // for the msb
-        if ( (curr_world[i-1] >> 7) & 0x1 ) num_alive++;
+        if ( (curr_world[i+1] >> 7) & 0x1 ) num_alive++;
         NE_byte = curr_world[i-world_length+1];
         if ( (NE_byte >> 7) & 0x1 ) num_alive++;
         SE_byte = curr_world[i+world_length+1];

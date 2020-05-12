@@ -33,6 +33,9 @@ gol_lut_parallel: $(LUT_SOURCES)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
 	./gol_lut_parallel 1
 
+gol_lut3x6_parallel: $(src)/gol_lut3x6_parallel.cu $(OBJ)
+	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
+
 seq_tests: $(SEQ_SOURCES)
 	./gol_seq 1
 	./gol_seq 2 
@@ -57,6 +60,17 @@ test_bits_parallel: clean gol_parallel
 	./gol_parallel 0 4096  25 2 
 	./gol_parallel 0 8192  25 2 
 	./gol_parallel 0 16384 25 2 
+
+test_lut_parallel: gol_lut_parallel
+	./gol_lut_parallel 1 8 1 1 
+	./gol_lut_parallel 1 8 1 2
+
+test_lut3x6_parallel: gol_lut3x6_parallel
+	./gol_lut3x6_parallel 1 8 1 1 
+	./gol_lut3x6_parallel 1 8 1 2 
+
+eval: gol_lut3x6_parallel 
+	python ../src/eval.py
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test gol_bits_seq *.out
