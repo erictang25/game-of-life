@@ -8,15 +8,17 @@ CUDA = /usr/local/cuda-10.1/bin/nvcc
 CUDAFLAGS = -arch=compute_52 -O3
 LDFLAGS = -lrt #-lm
 
-src = ../src
-SEQ_SOURCES = ../src/gol_seq.c ../src/utils.c
-
 OBJ = utils.o
+
+src = ../src
+SEQ_SOURCES = $(src)/gol_seq.c $(OBJ)
+LUT_SOURCES = $(src)/gol_lut_parallel.cu $(src)/gol_generate_lut.cu $(OBJ)
+UTIL_SOURCES = $(src)/utils.c $(src)/utils.h
 
 default: gol_seq gol_parallel
 
-utils.o: $(src)/utils.c $(src)/utils.h 
-	$(CPP) $(CPPFLAGS) -c -o $@ $(LDFLAGS) $<
+utils: $(UTIL_SOURCES)
+	$(CPP) $(CPPFLAGS) -c -o utils.o $(LDFLAGS) $<
 
 gol_seq: $(SEQ_SOURCES)
 	$(CC) $(CCFLAGS) -o $@ $^ 
@@ -26,6 +28,10 @@ gol_bits_seq: $(src)/gol_bits_seq.c ../src/utils.c
 
 gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
+
+gol_lut_parallel: $(LUT_SOURCES)
+	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
+	./gol_lut_parallel 1
 
 seq_tests: $(SEQ_SOURCES)
 	./gol_seq 1
@@ -51,9 +57,6 @@ test_bits_parallel: clean gol_parallel
 	./gol_parallel 0 4096  25 2 
 	./gol_parallel 0 8192  25 2 
 	./gol_parallel 0 16384 25 2 
-
-gol_lut_parallel: $(src)/gol_lut_parallel.cu $(OBJ)
-	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test gol_bits_seq *.out

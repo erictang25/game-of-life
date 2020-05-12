@@ -1,4 +1,5 @@
-
+#ifndef TEST_CASE_BITS_H
+#define TEST_CASE_BITS_H
 // test blinker
 #define T_DIM 8
 #define T_ROUNDS 3
@@ -356,3 +357,5 @@ uint8_t test_9[T9_ROUNDS][T9_DIM*T9_DIM/2] = {
     0b00000000,0b00000000 
   }
 }; 
+
+#endif
