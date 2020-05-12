@@ -11,43 +11,7 @@
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
-#include "lut3x6.h"
-
-inline __device__ uint8_t getCellState(int x, int y, uint key) {
-  uint64_t index = x + 10 * y;
-  return (key >> ((3 * 10 - 1) - index)) & 0x1;
-}
-
-/* Writes LUT
- * num_elements: number of elements in the LUT each thread is 
- *               responsible for
- */
-__global__ void compute10x3LUTKernel(uint8_t* LUT, int num_elements) {
-	uint64_t tableIndex = blockIdx.x * blockDim.x + threadIdx.x; 
-   
-	for (int i = 0; i < num_elements; i++){
-		uint8_t resultState = 0;
-		// For each cell.
-		for (int x = 1; x < 9; x++) {
-			// Count alive neighbors.
-			uint8_t aliveCount = 0;
-			for (int dx = -1; dx < 2; dx++) {
-				for (int dy = -1; dy < 2; dy++) {
-					aliveCount += getCellState(x + dx, 1 + dy, tableIndex);
-				}
-			}
-		
-			uint64_t centerState = getCellState(x, 1, tableIndex);
-			aliveCount -= centerState;  // Do not count center cell in the sum.
-		
-			if (aliveCount == 3 || (aliveCount == 2 && centerState == 1)) {
-				resultState |= 1 << (8 - x);
-			}
-		}
-		LUT[tableIndex] = resultState;
-		tableIndex++;
-	}
-}
+#include "lut.h"
    
 /* Each byte is 8 cells, each cell is one bit
  * curr_world  : shared array for the entire grid
@@ -56,9 +20,9 @@ __global__ void compute10x3LUTKernel(uint8_t* LUT, int num_elements) {
  *               each byte is 8 cells
  * world_length: length of the grid in bytes  
  */
-__global__ void gol_lut_cycle_3x6(uint8_t *curr_world, uint8_t *next_world, 
-							  uint64_t num_bytes,  uint64_t world_length, 
-							  uint64_t arr_length, int lut_row_size, uint8_t *LUT ){
+__global__ void gol_lut_cycle(uint8_t *curr_world, uint8_t *next_world, 
+                              uint8_t *LUT, uint64_t num_bytes,  
+                              uint64_t world_length, uint64_t arr_length ){
 
   uint64_t grid_idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -67,7 +31,8 @@ __global__ void gol_lut_cycle_3x6(uint8_t *curr_world, uint8_t *next_world,
   
   register uint8_t curr_states, state_N, state_S, state_E, state_W, 
                     state_SW, state_SE, state_NW, state_NE; 
-  uint8_t top, mid, bot;
+  
+  uint16_t top, mid, bot;
   uint32_t lut_index;
   for(uint64_t i = start; i < end; i++){
     next_world[i] = 0;
@@ -136,6 +101,17 @@ __global__ void gol_lut_cycle_3x6(uint8_t *curr_world, uint8_t *next_world,
       //       top, mid, bot, curr_world[i], next_world[i], state_W, curr_states, 
       //       state_E, state_NE, state_SE);
     }
+    // Look east
+    if ((i + 1) % world_length != 0){
+      state_E  = (curr_world[i+1] >> 7) & 0x1;
+      state_NE = (curr_world[i-world_length+1] >> 7) & 0x1;
+      state_SE = (curr_world[i-world_length+1] >> 7) & 0x1; 
+    }
+    top = (state_NW << 9) | (state_N << 1) | state_NE;
+    mid = (state_W << 9) | (curr_states << 1) | state_E;
+    bot = (state_SW << 9) | (state_S << 1) | state_SE;
+    lut_index = (top << 20) | (mid << 10) | bot;
+    next_world[i] = LUT[lut_index];
   }
 }
 
@@ -144,6 +120,8 @@ __global__ void gol_lut_cycle_3x6(uint8_t *curr_world, uint8_t *next_world,
  */
 int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test, 
              uint8_t **ref, int trace ){
+
+	printf("Begin running LUT\n");
 
 	struct timespec t_start, t_end;  
 	long double average, start, end;
@@ -155,33 +133,41 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
   while ( P > 1024 ){
     P -= 1024;
     blocks ++;
-  }
+	}
+
 	/* LUT parameters */
-	uint64_t LUT_size = pow(2,18);
+	uint64_t LUT_size = pow(2,30);
+	uint64_t num_entries = LUT_size / P;
 
   dim3 Block(blocks); // Square pattern
   dim3 Grid(P);
 
-/* Dynamically allocate memory for world */
-  uint8_t *dev_curr_world, *dev_next_world, *dev_LUT, *tmp;
+  /* Dynamically allocate memory for world */
+  uint8_t *dev_curr_world, *dev_next_world, *tmp, *LUT;
   cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
 	cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
-	cudaMalloc((void **) &dev_LUT, LUT_size*sizeof(uint8_t)); 
+	cudaMalloc((void **) &tmp, num_elements*sizeof(uint8_t)); 
+	cudaMalloc((void **) &LUT, LUT_size*sizeof(uint8_t)); 
+
   cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
-  cudaMemcpy(dev_LUT, LUT, LUT_size*sizeof(uint8_t), cudaMemcpyHostToDevice);
-  /* Precompute LUT */
-	// compute10x3LUTKernel<<<Grid, Block>>>(LUT, num_elements);
+
+	/* Precompute LUT */
+	printf("Calculating LUT\n");
+	compute10x3LUTKernel<<<Grid, Block>>>(LUT, num_entries);
+	printf("Finished calculating LUT\n");
 
   clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start timer */
 	for ( int i = 0; i < rounds; i++ ){
-    gol_lut_cycle_3x6<<<Grid, Block>>>(dev_curr_world, dev_next_world, num_elements/P, 
-                                    world_length, num_elements, 4, dev_LUT);
-    cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
-    tmp = dev_curr_world;
-    dev_curr_world = dev_next_world;
-    dev_next_world = tmp;
-    if (test && !world_bits_correct(world, ref[i], N)) return 1;  /* return 1 if error occurs */
-    if (trace) print_world_bits(world, N);
+    	gol_lut_cycle<<<Grid, Block>>>(dev_curr_world, dev_next_world, LUT,
+                                       N*N/8/P, world_length, num_elements);
+    	cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
+    	tmp = dev_curr_world;
+    	dev_curr_world = dev_next_world;
+    	dev_next_world = tmp;
+    	if (test && !world_bits_correct(world, ref[i], N)) 
+			return 1;  /* return 1 if error occurs */
+    	if (trace) 
+	    	print_world_bits(world, N);
 	}
   clock_gettime(CLOCK_MONOTONIC, &t_end); /* End timer */
 
@@ -198,11 +184,11 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 
 int main( int argc, char** argv ){
 	// Default values
-  int test   = 0; // Run direct test cases
-  uint64_t N = 8; // Matrix size 
-  uint64_t P = 1; // number of threads
+  	int test   = 0; // Run direct test cases
+  	uint64_t N = 8; // Matrix size 
+  	uint64_t P = 1; // number of threads
  	int ROUNDS = 5; // Number of Rounds
-  int trace  = 0; // print trace of world  
+  	int trace  = 0; // print trace of world  
 
 	/* Set Game of Life parameters acording to user input */
   if ( argc > 1 ) test = atoi(argv[1]); 
@@ -229,106 +215,107 @@ int main( int argc, char** argv ){
 
   uint8_t *world, **ref;
 
-  if (test){
-  /* Setup and run all test cases*/
-    int num_correct = 0;
-    N      = T_DIM;
-    ROUNDS = T_ROUNDS - 1;
+  	if (test){
+  	/* Setup and run all test cases*/
+    	int num_correct = 0;
+    	N      = T_DIM;
+    	ROUNDS = T_ROUNDS - 1;
 
-    // Test 1
-    printf("Running test 1\n");
-    world  = test_1[0];
-    ref    = (uint8_t**) malloc( sizeof(uint8_t*) * ROUNDS );
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_1[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
+    	// Test 1
+    	printf("Running test 1\n");
+    	world  = test_1[0];
+    	ref    = (uint8_t**) malloc( sizeof(uint8_t*) * ROUNDS );
+    	for (int r = 0; r < ROUNDS; r++)
+        	ref[r] = test_1[r+1];
+    	if (!gol_lut(world, N, P, ROUNDS, test, ref, trace)) 
+    		num_correct++;
+	}
 
-    // Test 2
-    printf("Running test 2\n");
-    world  = test_2[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_2[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-    // Test 3
-    printf("Running test 3\n");
-    world  = test_3[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_3[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-    // Test 4
-    printf("Running test 4\n");
-    world  = test_4[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_4[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-    // Test 5
-    printf("Running test 5\n");
-    world  = test_5[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_5[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-  // Test 6
-    printf("Running test 6\n");
-    world  = test_6[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_6[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-    // Test 7
-    printf("Running test 7\n");
-    world  = test_7[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_7[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-    // Test 8
-    printf("Running test 8\n");
-    world  = test_8[0];
-    for ( int r = 0; r < ROUNDS; r++ )
-        ref[r] = test_8[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
-    num_correct++;
-
-    // Test 9
-    printf("Running test 9\n");
-    world  = test_9[0];
-    N      = T9_DIM;
-    ROUNDS = T9_ROUNDS - 1;
-    for ( int r = 0; r < ROUNDS; r++ )
-      ref[r] = test_9[r+1];
-    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace)) 
-    num_correct++;
-  
-    printf("%s %d/9 tests passed %s\n", KBLU, num_correct, KNRM);
-    free(ref);
-  } else {
-    /* Run simulation w/ random seed */
-    uint64_t n_elements = N*N/8;
-    
-    /* Initialize world with random states*/
-    srand48(1);
-    world = (uint8_t*)malloc(n_elements * sizeof(uint8_t));
-    for(int r = 0; r < N; r++){
-      for(int c = 0; c < N/8; c++)
-        world[r*N/8+c] = (uint8_t)(rand() % 256);
-    } 
-    ref = NULL;
-    if (trace) 
-      print_world_bits( world, N ); /* Print initial state*/
-    gol_lut( world, N, P, ROUNDS, test, ref, trace ); /* Simulate Game of Life*/
-    free(world);
-  }
+//    // Test 2
+//    printf("Running test 2\n");
+//    world  = test_2[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_2[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 3
+//    printf("Running test 3\n");
+//    world  = test_3[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_3[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 4
+//    printf("Running test 4\n");
+//    world  = test_4[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_4[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 5
+//    printf("Running test 5\n");
+//    world  = test_5[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_5[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 6
+//    printf("Running test 6\n");
+//    world  = test_6[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_6[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 7
+//    printf("Running test 7\n");
+//    world  = test_7[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_7[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 8
+//    printf("Running test 8\n");
+//    world  = test_8[0];
+//    for ( int r = 0; r < ROUNDS; r++ )
+//        ref[r] = test_8[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace )) 
+//    num_correct++;
+//
+//    // Test 9
+//    printf("Running test 9\n");
+//    world  = test_9[0];
+//    N      = T9_DIM;
+//    ROUNDS = T9_ROUNDS - 1;
+//    for ( int r = 0; r < ROUNDS; r++ )
+//      ref[r] = test_9[r+1];
+//    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace)) 
+//      num_correct++;
+//  
+//    printf("%s %d/9 tests passed %s\n", KBLU, num_correct, KNRM);
+//    free(ref);
+//  } else {
+//    /* Run simulation w/ random seed */
+//    uint64_t n_elements = N*N/8;
+//    
+//    /* Initialize world with random states*/
+//    srand48(1);
+//    world = (uint8_t*)malloc(n_elements * sizeof(uint8_t));
+//    for(int r = 0; r < N; r++){
+//      for(int c = 0; c < N/8; c++)
+//        world[r*N/8+c] = (uint8_t)(rand() % 256);
+//    } 
+//    ref = NULL;
+//    if (trace) 
+//      print_world_bits( world, N ); /* Print initial state*/
+//    gol_lut( world, N, P, ROUNDS, test, ref, trace ); /* Simulate Game of Life*/
+//    free(world);
+//  }
 
   return 0;
 }

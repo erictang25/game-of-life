@@ -2,6 +2,8 @@
  * Author: Eric Tang (et396), Xiaoyu Yan (xy97) 
  * Date:   May 6, 2020
  */
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,3 +26,5 @@
 int check_generation_output(int *A, int *ref, int N);
 void print_world_bits( uint8_t *world, int N );
 int world_bits_correct( uint8_t *test, uint8_t *ref, int N );
+
+#endif
