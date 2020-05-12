@@ -4,7 +4,7 @@ import csv
 
 # dims      = [ 2**i for i in range(3, 17) ]
 dims      = [ 2**i for i in range(4, 17) ]
-nthreads  = [ 2**i for i in range(6, 23) ]
+nthreads  = [ 2**i for i in range(6, 22) ]
 # dims      = [ 2**i for i in range(3, ) ]
 # nthreads  = [ 2**i for i in range(3, 6) ]
 
