@@ -128,7 +128,7 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
     	dev_next_world = tmp;
     	if (test && !world_bits_correct(world, ref[i], N)) 
 			return 1;  /* return 1 if error occurs */
-    	if (trace) 
+    	if(test || trace) 
 	    	print_world_bits(world, N);
 	}
   	clock_gettime(CLOCK_MONOTONIC, &t_end); /* End timer */
@@ -161,8 +161,9 @@ int main( int argc, char** argv ){
         	printf( "Invalid N:[%ld]; Running with %ld instead\n", N );
     	}	 
   	}
-	if ( argc > 3 ) { 
-    	P = atoi(argv[3]); // number of threads
+	if(argc > 3) ROUNDS = atoi(argv[3]);
+	if(argc > 4){ 
+    	P = atoi(argv[4]); // number of threads
     	if ( P > N*N/8 ){
         	printf( "Invalid P:[%ld]; Too many threads for number of elements %ld\n", P, N*N/8 );
         	return 1;
@@ -171,10 +172,10 @@ int main( int argc, char** argv ){
         	printf( "Invalid P:[%ld]; Number of threads should be a factor of %ld\n", P, N*N/8 );
         	return 1;
     	}
-  }
-  if ( argc > 5 ) trace  = atoi(argv[5]); 
+  	}
+  	if(argc > 5) trace  = atoi(argv[5]); 
 
-  uint8_t *world, **ref;
+  	uint8_t *world, **ref;
 
   	if (test){
   		/* Setup and run all test cases*/
