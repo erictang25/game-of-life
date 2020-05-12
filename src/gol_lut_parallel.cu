@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include "utils.h"
 #include "test_case_bits.h"
-#include "lut.h"
+#include "lut3x6.h"
 
 inline __device__ uint8_t getCellState(int x, int y, uint key) {
   uint64_t index = x + 10 * y;
@@ -56,9 +56,9 @@ __global__ void compute10x3LUTKernel(uint8_t* LUT, int num_elements) {
  *               each byte is 8 cells
  * world_length: length of the grid in bytes  
  */
-__global__ void gol_lut_cycle(uint8_t *curr_world, uint8_t *next_world, 
+__global__ void gol_lut_cycle_3x6(uint8_t *curr_world, uint8_t *next_world, 
 							  uint64_t num_bytes,  uint64_t world_length, 
-							  uint64_t arr_length ){
+							  uint64_t arr_length, int lut_row_size, uint8_t *LUT ){
 
   uint64_t grid_idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -67,45 +67,75 @@ __global__ void gol_lut_cycle(uint8_t *curr_world, uint8_t *next_world,
   
   register uint8_t curr_states, state_N, state_S, state_E, state_W, 
                     state_SW, state_SE, state_NW, state_NE; 
-  
-  uint16_t top, mid, bottom;
+  uint8_t top, mid, bot;
   uint32_t lut_index;
   for(uint64_t i = start; i < end; i++){
-  // TODO Find 3x10 array of cell states
-  // TODO Find new byte in LUT
-    curr_states = curr_world[i];
-    state_N = 0;
-    state_S = 0; 
-    state_E = 0; 
-    state_W = 0; 
-    state_SW = 0; 
-    state_SE = 0; 
-    state_NW = 0; 
-    state_NE = 0;
-    if ( i > (world_length - 1) ){
-      state_N = curr_world[i-world_length];
+    next_world[i] = 0;
+    for( int j = 0; j < 8; j+= lut_row_size ){
+      curr_states = ( curr_world[i] >> j ) & 0xf;
+      
+      // TODO Find 3x10 array of cell states
+      // TODO Find new byte in LUT
+      state_N = 0;
+      state_S = 0; 
+      state_E = 0; 
+      state_W = 0; 
+      state_SW = 0; 
+      state_SE = 0; 
+      state_NW = 0; 
+      state_NE = 0;
+      if ( j == 0 ){
+        // look north
+        if ( i > (world_length - 1) ){
+          state_N = curr_world[i-world_length] & 0xf;
+        }
+        // look south
+        if ( i < (arr_length - world_length) ){
+          state_S = curr_world[i+world_length] & 0xf;
+        }
+        // look west
+        state_W  = (curr_world[i] >> lut_row_size) & 0x1;
+        state_NW = (curr_world[i-world_length] >> lut_row_size ) & 0x1;
+        state_SW = (curr_world[i+world_length] >> lut_row_size ) & 0x1;
+        
+        // look east
+        if ((i + 1) % world_length != 0){
+          state_E  = (curr_world[i+1] >> 7) & 0x1;
+          state_NE = (curr_world[i-world_length+1] >> 7) & 0x1;
+          state_SE = (curr_world[i+world_length+1] >> 7) & 0x1; 
+        }
+      }
+      else if ( j == 8 - lut_row_size ){
+        // look north
+        if ( i > (world_length - 1) ){
+          state_N = (curr_world[i-world_length] >> j) & 0xf;
+        }
+        // look south
+        if ( i < (arr_length - world_length) ){
+          state_S = (curr_world[i+world_length] >> j) & 0xf;
+        }
+        // look west
+        if ( i % world_length != 0 ){
+          state_W  = curr_world[i-1] & 0x1;
+          state_NW = curr_world[i-world_length-1] & 0x1;
+          state_SW = curr_world[i+world_length-1] & 0x1;
+        }
+        // Look east
+        state_E  = (curr_world[i] >> (j-1)) & 0x1;
+        state_NE = (curr_world[i-world_length] >> (j - 1)) & 0x1;
+        state_SE = (curr_world[i+world_length] >> (j - 1)) & 0x1; 
+        
+      }    
+      top = ((state_NW<<(lut_row_size+1))|(state_N<<1)    |state_NE) & 0x3f;
+      mid = ((state_W <<(lut_row_size+1))|(curr_states<<1)|state_E)  & 0x3f;
+      bot = ((state_SW<<(lut_row_size+1))|(state_S<<1)    |state_SE) & 0x3f;
+      lut_index = ((top<< ((lut_row_size+2)*2))|(mid<<(lut_row_size+2))|bot)&0x3ffff;
+      next_world[i] |= LUT[lut_index] << j;
+      // printf("j[%d] i[%ld] lut_i[%d] top[%x] mid[%d] bot[%d] curr[%d] next[%d] W[%d] cs[%d] E[%d] NE[%d] SE[%d]\n", 
+      // j, i, lut_index, 
+      //       top, mid, bot, curr_world[i], next_world[i], state_W, curr_states, 
+      //       state_E, state_NE, state_SE);
     }
-
-    if ( i < (arr_length - world_length) ){
-      state_S = curr_world[i+world_length];
-    }
-    // look west
-    if ( i % world_length != 0 ){
-      state_W  = curr_world[i-1] & 0x1;
-      state_NW = curr_world[i-world_length-1] & 0x1;
-      state_SW = curr_world[i+world_length-1] & 0x1;
-    }
-    // Look east
-    if ((i + 1) % world_length != 0){
-      state_E  = (curr_world[i+1] >> 7) & 0x1;
-      state_NE = curr_world[i-world_length+1] >> 7) & 0x1;
-      state_SE = curr_world[i-world_length+1] >> 7) & 0x1; 
-    }
-    top = (state_NW<<9)|(state_N<<1)    |state_NE;
-    mid = (state_W<<9) |(curr_states<<1)|state_E;
-    bot = (state_SW<<9)|(state_S<<1)    |state_SE;
-    lut_index = (top<<20)|(mid<<10)|bot
-    next_world[i] = LUT[lut_index];
   }
 }
 
@@ -120,41 +150,39 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 
 	/* Set grid parameters */
 	uint64_t world_length = N/8;
-  // uint64_t num_elements = N*N/8;
+  uint64_t num_elements = N*N/8;
   int blocks = 1;
   while ( P > 1024 ){
     P -= 1024;
     blocks ++;
   }
 	/* LUT parameters */
-	uint64_t LUT_size = pow(2,30);
-	uint64_t num_elements = LUT_size / P;
+	uint64_t LUT_size = pow(2,18);
 
   dim3 Block(blocks); // Square pattern
   dim3 Grid(P);
 
 /* Dynamically allocate memory for world */
-  uint8_t *dev_curr_world, *dev_next_world, *LUT;
+  uint8_t *dev_curr_world, *dev_next_world, *dev_LUT, *tmp;
   cudaMalloc((void **) &dev_curr_world, num_elements*sizeof(uint8_t)); 
 	cudaMalloc((void **) &dev_next_world, num_elements*sizeof(uint8_t)); 
-	cudaMalloc((void **) &LUT, LUT_size*sizeof(uint8_t)); 
+	cudaMalloc((void **) &dev_LUT, LUT_size*sizeof(uint8_t)); 
   cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
-
-	/* Precompute LUT */
-	compute10x3LUTKernel<<<Grid, Block>>>(LUT, num_elements);
+  cudaMemcpy(dev_LUT, LUT, LUT_size*sizeof(uint8_t), cudaMemcpyHostToDevice);
+  /* Precompute LUT */
+	// compute10x3LUTKernel<<<Grid, Block>>>(LUT, num_elements);
 
 	for ( int i = 0; i < rounds; i++ ){
     clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start timer */
-    gol_lut_cycle<<<Grid, Block>>>(dev_curr_world, dev_next_world, N*N/8/P, 
-                                    world_length, num_elements);
+    gol_lut_cycle_3x6<<<Grid, Block>>>(dev_curr_world, dev_next_world, num_elements/P, 
+                                    world_length, num_elements, 4, dev_LUT);
     cudaMemcpy(world, dev_next_world, num_elements*sizeof(uint8_t), cudaMemcpyDeviceToHost);
     tmp = dev_curr_world;
     dev_curr_world = dev_next_world;
     dev_next_world = tmp;
-    if (test && !world_bits_correct(world, ref[i], N)) return 1;  /* return 1 if error occurs */
-    if (trace) 
-    print_world_bits(world, N);
     clock_gettime(CLOCK_MONOTONIC, &t_end); /* End timer */
+    if (test && !world_bits_correct(world, ref[i], N)) return 1;  /* return 1 if error occurs */
+    if (trace) print_world_bits(world, N);
 	}
 
 	/* Calculate average runtime per round */
@@ -162,9 +190,10 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 	end = t_end.tv_sec + (long double)t_end.tv_nsec/BILLION;
 	average = (end - start)/((long double)rounds);
 	  
-  	printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
-  	printf("Average time per round: %.13LFs\n", average);
-  	return 0;
+  // printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
+  // printf("Average time per round: %.13LFs\n", average);
+  printf("3|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
+  return 0;
 }
 
 int main( int argc, char** argv ){
@@ -180,12 +209,13 @@ int main( int argc, char** argv ){
   if ( argc > 2 ) {
     N = atoi(argv[2]); // Dimensions of the block
     if ( N % 8 != 0 ){
-        printf( "Invalid N:[%ld]; must be divisible by 8\n", N );
-        N = 8;
+      printf( "Invalid N:[%ld]; must be divisible by 8\n", N );
+      N = 8;
     }	 
   }
-	if ( argc > 3 ) { 
-    P = atoi(argv[3]); // number of threads
+  if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
+	if ( argc > 4 ) { 
+    P = atoi(argv[4]); // number of threads
     if ( P > N*N/8 ){
         printf( "Invalid P:[%ld]; Too many threads for number of elements %ld\n", P, N*N/8 );
         return 1;
@@ -195,7 +225,6 @@ int main( int argc, char** argv ){
         return 1;
     }
   }
-  if ( argc > 4 ) ROUNDS = atoi(argv[4]); 
   if ( argc > 5 ) trace  = atoi(argv[5]); 
 
   uint8_t *world, **ref;
@@ -278,7 +307,7 @@ int main( int argc, char** argv ){
     ROUNDS = T9_ROUNDS - 1;
     for ( int r = 0; r < ROUNDS; r++ )
       ref[r] = test_9[r+1];
-  if (!gol_lut( world, N, P, ROUNDS, test, ref, trace)) 
+    if (!gol_lut( world, N, P, ROUNDS, test, ref, trace)) 
     num_correct++;
   
     printf("%s %d/9 tests passed %s\n", KBLU, num_correct, KNRM);

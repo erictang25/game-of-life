@@ -52,8 +52,15 @@ test_bits_parallel: clean gol_parallel
 	./gol_parallel 0 8192  25 2 
 	./gol_parallel 0 16384 25 2 
 
+test_lut_parallel: gol_lut_parallel
+	./gol_lut_parallel 1 8 1 1 
+	./gol_lut_parallel 1 8 1 2 
+
 gol_lut_parallel: $(src)/gol_lut_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
+
+eval: gol_lut_parallel gol_parallel
+	python ../src/eval.py
 
 clean:
 	rm -rf core.* *.o *.gcda *.gcno gol_seq gol_parallel test gol_bits_seq *.out

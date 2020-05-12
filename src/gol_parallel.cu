@@ -146,7 +146,7 @@ int gol_bit_per_cell( uint8_t *world, uint64_t N, uint64_t P, int rounds, int te
   }
   // printf("Grid Size: %ldx%ld, # Rounds: %d, # Threads: %ld\n", N, N, rounds, P*blocks);
   // printf("Average time per round: %.13LFs | cpy_avg: %.13LF\n", average, average_cpy);
-  printf("1|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
+  printf("2|%d|%ld|%ld|%.13LF|\n", rounds, N, P*blocks, average );
   return 0;
 }
 
