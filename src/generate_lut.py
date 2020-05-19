@@ -7,9 +7,9 @@ def n_hot_decoder( in_ ):
     hot += 1
   return hot
 
-def generate_lut( width, length ):
+def generate_lut(length ):
   assert length >= 3
-  assert width >= 3
+  width = 3
   LUT = []
   for block_state in range(2**(length*width)):
     next_state = 0
@@ -23,16 +23,16 @@ def generate_lut( width, length ):
         else:
           alive_count += n_hot_decoder(neighbors) - center_state
       if alive_count == 3 or (alive_count == 2 and center_state == 1):
-        next_state |= 1 << (length - 3 - i)
+        next_state |= 1 << i
       # print(block_state, alive_count, next_state)
     LUT.append(next_state)
   return LUT
 
-LUT = generate_lut(3, 10)
+LUT = generate_lut(6)
 
-output_file = "../src/lut3x3.h"
+output_file = "../src/lut3x6.h"
 with open(output_file, 'w') as fd:
-  fd.write("uint8_t LUT[] = {\n")
+  fd.write("const uint8_t LUT[] = {\n")
   for i, entry in enumerate(LUT):
     fd.write("\t{}".format(entry))
     if i < len(LUT)-1:
