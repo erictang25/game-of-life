@@ -152,11 +152,11 @@ ylabel("Speedup (vs. Sequential)")
 close all
 figure
 set(gcf, 'Position',  [100, 100, 450, 350])
-loglog(num_threads_2(1:18), lut_spdup_8192, 'linewidth', 2)
+loglog(num_threads_2(1:18), lut_spdup_8192(2:end), 'linewidth', 2)
 hold on, grid on
-loglog(num_threads_2(1:20), lut_spdup_16384, 'linewidth', 2)
-loglog(num_threads_2(1:21), lut_spdup_32768, 'linewidth', 2)
-loglog(num_threads_2(1:21), lut_spdup_65536, 'linewidth', 2)
+loglog(num_threads_2(1:20), lut_spdup_16384(2:end), 'linewidth', 2)
+loglog(num_threads_2(1:21), lut_spdup_32768(2:end),'linewidth', 2)
+loglog(num_threads_2, lut_spdup_65536(2:end),'linewidth', 2)
 title("Game of Life Speedup")
 legend("N = 8192", 'N = 16384', 'N = 32768', 'N = 65536', 'location',"Southeast")
 xlabel("Number of Threads")
