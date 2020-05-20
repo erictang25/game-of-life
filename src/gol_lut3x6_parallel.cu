@@ -133,9 +133,7 @@ int gol_lut( uint8_t *world, uint64_t N, uint64_t P, int rounds, int test,
 	cudaMalloc((void **) &dev_LUT, LUT_size*sizeof(uint8_t)); 
   cudaMemcpy(dev_curr_world, world, num_elements*sizeof(uint8_t), cudaMemcpyHostToDevice);
   cudaMemcpy(dev_LUT, LUT, LUT_size*sizeof(uint8_t), cudaMemcpyHostToDevice);
-  /* Precompute LUT */
-	// compute10x3LUTKernel<<<Grid, Block>>>(LUT, num_elements);
-
+  
   clock_gettime(CLOCK_MONOTONIC, &t_start); /* Start timer */
 	for ( int i = 0; i < rounds; i++ ){
     gol_lut_cycle_3x6<<<Grid, Block>>>(dev_curr_world, dev_next_world, num_elements/P, 

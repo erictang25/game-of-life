@@ -15,7 +15,7 @@
 void srand48(long int seedval);
 int rand();
 void print_grid(int *A, uint64_t N);
-void copy_grid(int *old, int *new, uint64_t N);
+void copy_grid(int *old, int *new_state, uint64_t N);
 int get_num_live_neighbors(int *A, int r, int c, uint64_t N);
 int game_of_life(int *A, uint64_t N, int ROUNDS, int test);
 
@@ -186,10 +186,10 @@ void print_grid( int *A, uint64_t N ){
 }
 
 /* Copy new grid into old grid */
-void copy_grid(int *old, int *new, uint64_t N){
+void copy_grid(int *old, int *new_state, uint64_t N){
 	for(int r = 0; r < N; r++){
 		for(int c = 0; c < N; c++)
-			old[r * N + c] = new[r * N + c];
+			old[r * N + c] = new_state[r * N + c];
 	}
 }
 

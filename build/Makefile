@@ -21,7 +21,7 @@ utils: $(UTIL_SOURCES)
 	$(CPP) $(CPPFLAGS) -c -o utils.o $(LDFLAGS) $<
 
 gol_seq: $(SEQ_SOURCES)
-	$(CC) $(CCFLAGS) -o $@ $^ 
+	$(CPP) $(CCFLAGS) -o $@ $^ 
 
 gol_bits_seq: $(src)/gol_bits_seq.c ../src/utils.c
 	$(CC) $(CPPFLAGS) -o $@ $(LDFLAGS) $^
@@ -31,7 +31,6 @@ gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 
 gol_lut_parallel: $(LUT_SOURCES)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
-	./gol_lut_parallel 1
 
 gol_lut3x6_parallel: $(src)/gol_lut3x6_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)
@@ -62,14 +61,14 @@ test_bits_parallel: clean gol_parallel
 	./gol_parallel 0 16384 25 2 
 
 test_lut_parallel: gol_lut_parallel
-	./gol_lut_parallel 1 8 1 1 
-	./gol_lut_parallel 1 8 1 2
+	./gol_lut_parallel 1 8 1 1 1
+	./gol_lut_parallel 1 8 1 2 1
 
 test_lut3x6_parallel: gol_lut3x6_parallel
 	./gol_lut3x6_parallel 1 8 1 1 
 	./gol_lut3x6_parallel 1 8 1 2 
 
-eval: gol_lut3x6_parallel 
+eval: gol_lut3x6_parallel gol_lut_parallel
 	python ../src/eval.py
 
 clean:
