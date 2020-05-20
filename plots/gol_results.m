@@ -1,3 +1,5 @@
+close all
+
 size = 2.^(3:16);
 
 seq                 = [1.947E-06 2.104E-05 9.166E-05 1.594E-04 6.286E-04 2.850E-03 1.066E-02 3.643E-02 1.105E-01 4.500E-01 1.768E+00 8.185E+00 3.199E+01 1.187E+02];
@@ -45,9 +47,9 @@ bpc_perf_32768 = [3.199E+01				            2.264E+01	1.129E+01	5.852E+00	2.931E+
 bpc_perf_65536 = [1.187E+02				            9.057E+01	4.517E+01	2.346E+01	1.177E+01	6.186E+00	3.395E+00	2.070E+00	1.932E+00	8.376E-01	8.696E-04	2.122E-04	1.055E-03	1.083E-03	9.584E-04	6.667E-04	2.155E-04	1.103E-03	1.091E-03	6.745E-02	1.453E-01];
 
 lut_perf_8192  = [1.818E+00	                        2.299E-01	1.158E-01	6.021E-02	3.315E-02	3.390E-02	1.759E-03	6.890E-04	7.690E-04	6.950E-04	4.700E-04	7.210E-04	8.040E-04	7.510E-04	7.180E-04	7.210E-04	8.620E-04	1.707E-03];			
-lut_perf_16384 = [7.256E+00	                        9.181E-01	4.639E-01	2.438E-01	1.364E-01	1.359E-01	5.082E-03	6.830E-04	7.400E-04	7.330E-04	7.320E-04	7.280E-04	7.170E-04	7.150E-04	4.930E-04	7.260E-04	3.091E-03	5.445E-03	2.190E-08	1.760E-05];	
-lut_perf_32768 = [2.904E+01	                        3.664E+00	1.874E+00	1.076E+00	5.996E-01	5.405E-01	3.177E-02	7.270E-04	7.280E-04	6.140E-04	7.310E-04	7.320E-04	7.280E-04	7.420E-04	7.390E-04	7.270E-04	1.114E-02	1.090E-02	2.790E-08	1.000E-04	5.200E-05];
-lut_perf_65536 = [1.162E+02	                        1.477E+01	7.556E+00	4.370E+00	3.434E+00	2.848E+00	2.087E-01	7.270E-04	7.280E-04	7.840E-04	8.250E-04	7.390E-04	7.450E-04	7.360E-04	6.810E-04	7.810E-04	7.958E-02	8.032E-02	2.210E-08	3.460E-04	3.450E-04];
+lut_perf_16384 = [7.256E+00	                        9.181E-01	4.639E-01	2.438E-01	1.364E-01	1.359E-01	5.082E-03	6.830E-04	7.400E-04	7.330E-04	7.320E-04	7.280E-04	7.170E-04	7.150E-04	4.930E-04	7.260E-04	3.091E-03	5.445E-03	3.068E-03	1.760E-05];	
+lut_perf_32768 = [2.904E+01	                        3.664E+00	1.874E+00	1.076E+00	5.996E-01	5.405E-01	3.177E-02	7.270E-04	7.280E-04	6.140E-04	7.310E-04	7.320E-04	7.280E-04	7.420E-04	7.390E-04	7.270E-04	1.114E-02	1.090E-02	1.987E-02	1.000E-04	5.200E-05];
+lut_perf_65536 = [1.162E+02	                        1.477E+01	7.556E+00	4.370E+00	3.434E+00	2.848E+00	2.087E-01	7.270E-04	7.280E-04	7.840E-04	8.250E-04	7.390E-04	7.450E-04	7.360E-04	6.810E-04	7.810E-04	7.958E-02	0.000594	0.00073  	0.045502	0.079578];
 
 num_threads = 2.^[0:1 3:22];
 bpc_spdup_8192  = bpc_perf_8192(1)  ./ bpc_perf_8192;
@@ -62,29 +64,32 @@ lut_spdup_32768 = bpc_perf_32768(1) ./ lut_perf_32768;
 lut_spdup_65536 = bpc_perf_65536(1) ./ lut_perf_65536;
 
 %% Plot 
-close all
+% close all
 figure
-set(gcf, 'Position',  [100, 100, 450, 350])
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(size        , seq                ,'linewidth', 2)
-hold on, grid on
+hold on
+% grid on; 
+grid minor
 loglog(size        , seq_bit            ,'linewidth', 2)
 loglog(size        , parallel_bpc_8t    ,'linewidth', 2)
 loglog(size(3:end) , parallel_bpc_128t  ,'linewidth', 2)
 loglog(size(4:end) , parallel_bpc_512t  ,'linewidth', 2)
 loglog(size(5:end) , parallel_bpc_2048t ,'linewidth', 2)
 loglog(size(10:end), parallel_bpc_2mt   ,'linewidth', 2)
-title("Runtime vs. World Size",'FontSize',15)
+% title("Runtime vs. World Size",'FontSize',15)
 legend("Sequential", "Sequential Bit/Cell", ...
     '8 threads', '128 threads', '512 threads',...
     '2048 threads', ...
     '2 million threads', 'location',"Northwest")
 xlabel("Size of World (NxN)")
 ylabel("Average Time per Round")
+saveas(gcf,'figures/bp_runtime_world.png')
 
 %% Plot
 % close all
 figure
-set(gcf, 'Position',  [100, 100, 450, 350])
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(size, ones(length(size),1), 'linewidth',2)
 hold on, grid on
 loglog(size        , seq_bit_spdup            ,'linewidth', 2)
@@ -93,31 +98,33 @@ loglog(size(3:end) , parallel_bpc_128t_spdup  ,'linewidth', 2)
 loglog(size(4:end) , parallel_bpc_512t_spdup  ,'linewidth', 2)
 loglog(size(5:end) , parallel_bpc_2048t_spdup ,'linewidth', 2)
 loglog(size(10:end), parallel_bpc_2mt_spdup   ,'linewidth', 2)
-title("Speedup vs. World Size",'FontSize',15)
+% title("Speedup vs. World Size",'FontSize',15)
 legend("Sequential", "Sequential Bit/Cell", '8 threads', ...
     '128 threads', '512 threads', '2048 threads', ...
     '2 million threads', 'location',"Northwest")
 xlabel("Size of World (NxN)")
 ylabel("Speedup (vs. Sequential)")
+saveas(gcf,'figures/bp_speedup_world.png')
 
 %% Plot
-close all
+% close all
 figure
-set(gcf, 'Position',  [100, 100, 450, 350])
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(num_threads, bpc_spdup_8192(2:end), 'linewidth', 2)
 hold on, grid on
 loglog(num_threads, bpc_spdup_16384(2:end), 'linewidth', 2)
 loglog(num_threads(3:end), bpc_spdup_32768(2:end),'linewidth', 2)
 loglog(num_threads(3:end), bpc_spdup_65536(2:end),'linewidth', 2)
-title("Speedup vs. Number of Threads",'FontSize',15)
+% title("Speedup vs. Number of Threads",'FontSize',15)
 legend("N = 8192", 'N = 16384', 'N = 32768', 'N = 65536', 'location',"Southeast")
 xlabel("Number of Threads")
 ylabel("Speedup (vs. Sequential)")
+saveas(gcf,'figures/bp_speedup_threads.png')
 
 %% Plot runtime of 3x6 LUT w/ various numbers of threads
-close all
+% close all
 figure
-set(gcf, 'Position',  [100, 100, 450, 350])
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(size        , seq                ,'linewidth', 2)
 hold on, grid on
 loglog(size( 3:end), parallel_lut_8t    ,'linewidth', 2)
@@ -125,16 +132,17 @@ loglog(size( 3:end), parallel_lut_128t  ,'linewidth', 2)
 loglog(size( 4:end), parallel_lut_512t  ,'linewidth', 2)
 loglog(size( 5:end), parallel_lut_2048t ,'linewidth', 2)
 loglog(size(10:end), parallel_lut_2mt   ,'linewidth', 2)
-title("Runtime vs. World Size (3x6 LUT)",'FontSize',15)
+% title("Runtime vs. World Size (3x6 LUT)",'FontSize',15)
 legend("Sequential", "8 threads", '128 threads', '512 threads',...
     '2048 threads', '2 million threads', 'location',"Northwest")
 xlabel("Size of Grid (NxN)")
 ylabel("Average Time per Round")
+saveas(gcf,'figures/lut3x6_runtime_world.png')
 
 %% Plot speedup of 3x6 LUT w/ various numbers of threads
 %close all
 figure
-set(gcf, 'Position',  [100, 100, 450, 350])
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(size, ones(length(size),1), 'linewidth',2)
 hold on, grid on
 loglog(size(3:end) , parallel_lut_8t_spdup  ,'linewidth', 2)
@@ -142,29 +150,33 @@ loglog(size(3:end) , parallel_lut_128t_spdup  ,'linewidth', 2)
 loglog(size(4:end) , parallel_lut_512t_spdup  ,'linewidth', 2)
 loglog(size(5:end) , parallel_lut_2048t_spdup ,'linewidth', 2)
 loglog(size(10:end), parallel_lut_2mt_spdup   ,'linewidth', 2)
-title("Speedup vs. World Size (3x6 LUT)",'FontSize',15)
+% title("Speedup vs. World Size (3x6 LUT)",'FontSize',15)
 legend("Sequential", '8 threads', '128 threads', '512 threads', '2048 threads', ...
     '2 million threads', 'location',"Northwest")
 xlabel("Size of Grid (NxN)")
 ylabel("Speedup (vs. Sequential)")
+saveas(gcf,'figures/lut3x6_speedup_world.png')
 
 %% Plot
-close all
+% close all
 figure
-set(gcf, 'Position',  [100, 100, 450, 350])
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(num_threads_2(1:18), lut_spdup_8192, 'linewidth', 2)
 hold on, grid on
 loglog(num_threads_2(1:20), lut_spdup_16384, 'linewidth', 2)
 loglog(num_threads_2(1:21), lut_spdup_32768, 'linewidth', 2)
 loglog(num_threads_2(1:21), lut_spdup_65536, 'linewidth', 2)
-title("Game of Life Speedup")
+% title("Game of Life Speedup")
 legend("N = 8192", 'N = 16384', 'N = 32768', 'N = 65536', 'location',"Southeast")
 xlabel("Number of Threads")
 ylabel("Speedup (vs. Sequential)")
+saveas(gcf,'figures/lut3x6_speedup_threads.png')
+
 
 %% Compare all 4 algos
-close all
+% close all
 figure
+set(gcf, 'Position',  [100, 100, 450, 400])
 loglog(size        , ones(length(size),1)     , 'linewidth',2)
 hold on, grid on
 loglog(size        , seq_bit_spdup            ,'linewidth', 2)
@@ -172,9 +184,10 @@ loglog(size(5:end) , parallel_bpc_2048t_spdup ,'linewidth', 2)
 loglog(size(10:end), parallel_bpc_2mt_spdup   ,'linewidth', 2)
 loglog(size(5:end) , parallel_lut_2048t_spdup ,'linewidth', 2)
 loglog(size(10:end) , parallel_lut_2mt_spdup   ,'linewidth', 2)
-title("Game of Life Speedup Comparison")
+% title("Game of Life Speedup Comparison")
 legend("Sequential", 'Sequential Bit/Cell', 'Parallel Bit/Cell - 2048 threads', ...
     'Parallel Bit/Cell - 2 mil threads', '3x6 LUT - 2048 threads', ...
     '3x6 LUT - 2 mil threads', 'location',"Northwest")
 xlabel("Size of Grid (NxN)")
 ylabel("Speedup (vs. Sequential)")
+saveas(gcf,'figures/speedup_comparison.png')
