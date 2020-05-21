@@ -6,10 +6,10 @@ The Game of Life, also known simply as Life, is a cellular automaton devised by 
 
 To run the tests
 
-'''
+```
 cd build
 make test
-'''
+```
 
 ## Developers
 
