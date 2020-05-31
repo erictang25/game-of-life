@@ -133,16 +133,19 @@ int main( int argc, char** argv ){
   uint64_t N = 8; // Matrix size 
   int ROUNDS = 5; // Number of Rounds
   int trace  = 0; // print trace of world  
-  if ( argc > 1 ) test = atoi(argv[1]); 
-  if ( argc > 2 ) {
-    N = atoi(argv[2]); // Dimensions of the block
-    if ( N % 8 != 0 ){
-      printf( "Invalid N:[%ld]; must be divisible by 8\n", N );
-      N = 8;
-    } 
-  }
-  if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
-  if ( argc > 4 ) trace  = atoi(argv[4]); 
+
+	if(argc == 2) 
+		test = atoi(argv[1]); 
+	if(argc == 4){
+    	N = atoi(argv[1]); // Dimensions of the block
+    	if ( N % 8 != 0 ){
+      		printf( "Invalid N:[%ld]; must be divisible by 8; setting N = 8\n", N );
+      		N = 8;
+    	} 
+  		ROUNDS = atoi(argv[2]); 
+  		trace  = atoi(argv[3]);
+	}
+ 
   uint8_t *world, **ref;
   if (test){
     int num_correct = 0, num_tests = 0;

@@ -24,7 +24,7 @@ utils: $(UTIL_SOURCES)
 gol_seq: $(SEQ_SOURCES)
 	$(CPP) $(CPPFLAGS) -o $@ $^ 
 
-gol_bits_seq: $(SEQ_BIT_SOURCES)
+gol_seq_bits: $(SEQ_BIT_SOURCES)
 	$(CPP) $(CPPFLAGS) -o $@ $(LDFLAGS) $^
 
 gol_parallel: $(src)/gol_parallel.cu $(OBJ)

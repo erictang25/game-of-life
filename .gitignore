@@ -57,4 +57,4 @@ src/.n*
 .n*
 build/test
 build/gol_seq
-
+build/gol_seq_bits
