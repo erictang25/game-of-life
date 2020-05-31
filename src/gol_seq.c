@@ -14,19 +14,27 @@
 
 void srand48(long int seedval);
 int rand();
-void print_grid(int *A, uint64_t N);
-void copy_grid(int *old, int *new_state, uint64_t N);
-int get_num_live_neighbors(int *A, int r, int c, uint64_t N);
-int game_of_life(int *A, uint64_t N, int ROUNDS, int test);
+void copy_grid(int *old, int *new_state, int N);
+int get_num_live_neighbors(int *A, int r, int c, int N);
+int game_of_life(int *A, int N, int ROUNDS, int test, int print);
 
 int main( int argc, char** argv ){
-	uint64_t N = 10; /* Matrix size */
-	int ROUNDS = 5;  /* Number of Rounds */
-	int test = 0;    /* Test to run (0 is random) */
+	int N      = 10; /* Matrix size */
+	int ROUNDS =  5; /* Number of Rounds */
+	int test   =  0; /* Test to run (0 is random) */
+	int print  =  0; /* Whether to display grid */
 
-	if ( argc > 1 ) test   = atoi(argv[1]); 
-	if ( argc > 2 ) N      = atoi(argv[2]); 
-	if ( argc > 3 ) ROUNDS = atoi(argv[3]); 
+	if (argc == 2) 
+		test   = atoi(argv[1]); 
+	if (argc == 3){
+		N      = atoi(argv[1]); 
+		ROUNDS = atoi(argv[2]);
+	} 
+	if (argc == 4){
+		N      = atoi(argv[1]); 
+		ROUNDS = atoi(argv[2]);
+		print  = atoi(argv[3]);
+	} 
   
 	struct timespec start, end;
 	long double diff;
@@ -84,7 +92,7 @@ int main( int argc, char** argv ){
 
 	/* Run and time Game of Life */
 	clock_gettime(CLOCK_MONOTONIC, &start); /* Start Timer */
-	int status = game_of_life(A, N, ROUNDS, test);
+	int status = game_of_life(A, N, ROUNDS, test, print);
 	clock_gettime(CLOCK_MONOTONIC, &end);   /* End timer */
 
 	/* Return if failed test */
@@ -99,14 +107,14 @@ int main( int argc, char** argv ){
 	/* Calculate runtime */
 	diff = BILLION * (end.tv_sec - start.tv_sec) + end.tv_nsec - start.tv_nsec;
 	diff /= (long double)(BILLION * ROUNDS);
-	printf("Grid, %ldx%ld, %d rounds,\n", N, N, ROUNDS);
+	printf("Grid, %dx%d, %d rounds,\n", N, N, ROUNDS);
 	printf("Runtime: %.13LF sec\n", diff);
 	
 	return 0;  
 }
 
 
-int game_of_life(int *A, uint64_t N, int ROUNDS, int test){
+int game_of_life(int *A, int N, int ROUNDS, int test, int print){
 
 	int num_neighbors, state;
 
@@ -119,11 +127,12 @@ int game_of_life(int *A, uint64_t N, int ROUNDS, int test){
 
 	/* Run Game of Life for set number of iterations */
 	for(int i = 0; i < ROUNDS; i++){
-	/*  Commented out for timing tests		
-	 *	printf("ROUND %d\n", i);
- 	 *	print_grid(A, N);
-	 *	printf("\n");
- 	 */
+		if(print != 0){
+			printf("ROUND %d\n", i);
+ 			print_world(A, N);
+			printf("\n");
+		}
+
 		/* Check state if running test */
 		switch(test){
     		case 1:  
@@ -176,17 +185,8 @@ int game_of_life(int *A, uint64_t N, int ROUNDS, int test){
 	return 0;
 }
 
-void print_grid( int *A, uint64_t N ){
-	for(int r = 0; r < N; r++){
-		for(int c = 0; c < N; c++){
-			printf("%d ", A[r * N + c]);
-			if(c == N-1){ printf("\n"); }
-		}
-	}
-}
-
 /* Copy new grid into old grid */
-void copy_grid(int *old, int *new_state, uint64_t N){
+void copy_grid(int *old, int *new_state, int N){
 	for(int r = 0; r < N; r++){
 		for(int c = 0; c < N; c++)
 			old[r * N + c] = new_state[r * N + c];
@@ -196,7 +196,7 @@ void copy_grid(int *old, int *new_state, uint64_t N){
 /* Find number of neighbors that are alive given 
  * a grid and set of coordinates
  */
-int get_num_live_neighbors(int *A, int r, int c, uint64_t N){
+int get_num_live_neighbors(int *A, int r, int c, int N){
 	int row, col;
 	int num_alive = 0;
 	for(int nr = r-1; nr <= r+1; nr++){
@@ -220,3 +220,4 @@ int get_num_live_neighbors(int *A, int r, int c, uint64_t N){
 	}
 	return num_alive;
 }
+

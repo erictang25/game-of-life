@@ -26,6 +26,23 @@ int check_generation_output( int *A, int *ref, int N ){
   return mismatch;
 }
 
+/* Print the world assuming each cell is 1 int */
+void print_world(int *world, int N){
+	int cell;
+	for (int r = 0; r < N; r++){
+		printf(" ");
+    	for(int c = 0; c < N; c++){
+        	cell = world[r * N + c];
+        	if (cell)
+				printf("%s  %s", BGRN, BNRM);
+        	else
+				printf("%s  %s", BRED, BNRM);
+      	}
+    	printf("\n");
+    }
+    printf("\n");
+}
+
 /* Print the world assuming each cell is 1 bit */
 void print_world_bits( uint8_t *world, int N ){
   int cell;

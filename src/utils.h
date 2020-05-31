@@ -24,6 +24,7 @@
 #define BNRM "\e[0m"
 
 int check_generation_output(int *A, int *ref, int N);
+void print_world(int *world, int N );
 void print_world_bits( uint8_t *world, int N );
 int world_bits_correct( uint8_t *test, uint8_t *ref, int N );
 

@@ -12,6 +12,7 @@ OBJ = utils.o
 
 src = ../src
 SEQ_SOURCES = $(src)/gol_seq.c $(OBJ)
+SEQ_BIT_SOURCES = $(src)/gol_bits_seq.c $(OBJ)
 LUT_SOURCES = $(src)/gol_lut_parallel.cu $(src)/gol_generate_lut.cu $(OBJ)
 UTIL_SOURCES = $(src)/utils.c $(src)/utils.h
 
@@ -21,10 +22,10 @@ utils: $(UTIL_SOURCES)
 	$(CPP) $(CPPFLAGS) -c -o utils.o $(LDFLAGS) $<
 
 gol_seq: $(SEQ_SOURCES)
-	$(CPP) $(CCFLAGS) -o $@ $^ 
+	$(CPP) $(CPPFLAGS) -o $@ $^ 
 
-gol_bits_seq: $(src)/gol_bits_seq.c ../src/utils.c
-	$(CC) $(CPPFLAGS) -o $@ $(LDFLAGS) $^
+gol_bits_seq: $(SEQ_BIT_SOURCES)
+	$(CPP) $(CPPFLAGS) -o $@ $(LDFLAGS) $^
 
 gol_parallel: $(src)/gol_parallel.cu $(OBJ)
 	$(CUDA) $(CUDAFLAGS) -o $@ $^ $(LDFLAGS)

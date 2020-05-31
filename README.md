@@ -4,11 +4,18 @@ The Game of Life, also known simply as Life, is a cellular automaton devised by 
 
 ## Getting Started
 
-To run the tests
+To run the baseline sequential version
 
 ```
 cd build
-make test
+make utils
+make gol_seq
+make seq_tests
+./gol_seq G R
+```
+where R is the number of rounds and G is the size of one side of the NxN grid. The final command will simulate the baseline sequential version of the Game of Life for the given number of rounds with the corresponding grid size and output the runtime. In order to view the grid at each round, run 
+```
+./gol_seq G R 1
 ```
 
 ## Developers
